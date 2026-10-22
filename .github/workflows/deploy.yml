@@ -17,6 +17,8 @@ jobs:
       deployments: write
     steps:
       - uses: actions/checkout@v4
+      - name: Versione di app.js (evita che i browser usino quella vecchia in cache)
+        run: node scripts/stamp-version.mjs "${GITHUB_SHA::8}"
       - uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
