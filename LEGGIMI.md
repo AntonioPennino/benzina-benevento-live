@@ -12,6 +12,7 @@ Nessuna build: HTML statico + JavaScript nel browser.
 | `public/` | Tutto ciò che viene pubblicato: è la cartella servita da Cloudflare Pages. |
 | `public/index.html` | Struttura e stile (Tailwind via CDN, Font Awesome, Leaflet, SDK Firebase). |
 | `public/app.js` | Tutta la logica: dati iniziali, Firebase, voti, rendering di mappa, elenco e schede. |
+| `public/vendor/leaflet/` | Libreria della mappa (Leaflet 1.9.4) ospitata sul sito, per non dipendere da unpkg.com. |
 | `public/_headers` | Header HTTP di sicurezza applicati da Cloudflare a tutte le pagine. |
 | `functions/api/press-news.ts` | Pages Function che legge i feed delle testate locali (`/api/press-news`). Cache sull'edge di 15 minuti. |
 | `wrangler.toml` | Configurazione Cloudflare Pages (nome progetto e cartella da pubblicare). |
@@ -43,6 +44,7 @@ La configurazione Firebase dentro `app.js` è quella pubblica di un'app web: non
 ## Interfaccia
 - Grafica originale (scura, con avviso giallo e rosso, emoji). Mappa stradale OpenStreetMap con Leaflet (la vecchia mappa semplificata è stata tolta).
 - Su telefono: barra **Mappa / Elenco** (una vista alla volta, filtri sempre sopra). Su schermi larghi mappa ed elenco sono affiancati.
+- **Posizioni delle pompe**: quelle dei distributori iniziali sono in `INITIAL_BENEVENTO_STATIONS`, le correzioni per i distributori aggiunti dagli utenti in `POSITION_FIXES` (in `app.js`). Entrambe hanno la precedenza sulle coordinate salvate nel database: per spostare una pompa basta modificarle lì. Le posizioni vengono dai distributori reali su OpenStreetMap.
 - Toccando una pompa si apre la scheda grande e, sotto la mappa, la scheda rapida; un tocco fuori dalla scheda rapida (o Esc) la chiude.
 - Nuovo distributore: la pompa va nel punto esatto dell'indirizzo, cercato con Nominatim (OpenStreetMap). Con "Altro Comune…" si scrive il comune e, se l'indirizzo non si trova, il distributore non viene aggiunto; a Benevento, se la ricerca fallisce, si usa la zona scelta.
 
