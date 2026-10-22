@@ -107,7 +107,7 @@
                     const userCred = await auth.signInAnonymously();
                     currentUser = userCred.user;
                 } catch (authError) {
-                    currentUser = { uid: 'cittadino-bn-local' };
+                    currentUser = { uid: localDeviceId() };
                 }
 
                 document.getElementById('footerUserId').textContent = currentUser?.uid || 'anonimo-bn';
@@ -118,6 +118,9 @@
                     updateConnectionUI(true, "Sincronizzazione Cloud Live attiva");
 
                     if (snapshot.empty) {
+                        // Uno snapshot vuoto "dalla cache" arriva quando il server non risponde (rete assente,
+                        // quota esaurita): non vuol dire che il database sia vuoto. In quel caso non si scrive nulla.
+                        if (snapshot.metadata.fromCache) return;
                         console.warn("Database vuoto! Tento il caricamento automatico...");
                         await seedInitialStationsToFirestore();
                         return;
@@ -169,9 +172,15 @@
         async function seedInitialStationsToFirestore() {
             if (!db) return;
             try {
+                // crea solo i distributori che mancano: una transazione legge dal server, quindi
+                // non sovrascrive mai voti esistenti né accoda scritture quando si è offline
                 for (const st of INITIAL_BENEVENTO_STATIONS) {
                     const docRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('stations').doc(st.id);
-                    await docRef.set({ ...st, seedVersion: SEED_VERSION, lastReporterId: st.isPressSource ? 'fonte-stampa-verificata' : null });
+                    await db.runTransaction(async (tx) => {
+                        const snap = await tx.get(docRef);
+                        if (snap.exists) return;
+                        tx.set(docRef, { ...st, seedVersion: SEED_VERSION, lastReporterId: st.isPressSource ? 'fonte-stampa-verificata' : null });
+                    });
                 }
                 showToast("Database Popolato!", "Caricati i 14 distributori di Benevento su Firebase.");
             } catch (e) {
@@ -570,7 +579,18 @@
 
 
         // ---- Segnalazioni: una per persona per distributore; ripremere lo stesso stato la rimuove ----
-        function myUid() { return currentUser?.uid || 'cittadino-bn-local'; }
+        // se il login anonimo non riesce, ogni dispositivo usa un proprio id (prima era uno solo per tutti,
+        // e chi votava lo stesso stato toglieva il voto di un altro)
+        function localDeviceId() {
+            let id = null;
+            try { id = localStorage.getItem('bn-device-id'); } catch (e) {}
+            if (!id) {
+                id = 'dispositivo-' + Math.random().toString(36).slice(2, 12) + Date.now().toString(36);
+                try { localStorage.setItem('bn-device-id', id); } catch (e) {}
+            }
+            return id;
+        }
+        function myUid() { return currentUser?.uid || localDeviceId(); }
         function myVoteOf(st) { return st && st.votes ? (st.votes[myUid()] || null) : null; }
 
         // Finestra dei voti "freschi": contano per lo stato solo i voti dei 45 minuti che precedono l'ultimo voto.
@@ -723,16 +743,28 @@
         window.openAddStationModal = () => document.getElementById('addStationModal').classList.replace('hidden', 'flex');
         window.closeAddStationModal = () => document.getElementById('addStationModal').classList.replace('flex', 'hidden');
 
+        // "Altro quartiere…": compare il campo libero, obbligatorio solo in quel caso
+        window.toggleOtherZone = function() {
+            const other = document.getElementById('newStationZoneOther');
+            const isOther = document.getElementById('newStationZone').value === '__altro__';
+            other.classList.toggle('hidden', !isOther);
+            other.required = isOther;
+            if (isOther) other.focus();
+        };
+
         window.handleAddStationSubmit = async function(e) {
             e.preventDefault();
             const brand = document.getElementById('newStationBrand').value;
-            const zone = document.getElementById('newStationZone').value;
+            const zoneChoice = document.getElementById('newStationZone').value;
+            const isOtherZone = zoneChoice === '__altro__';
+            const zone = isOtherZone ? document.getElementById('newStationZoneOther').value.trim() : zoneChoice;
             const name = document.getElementById('newStationName').value.trim();
             const address = document.getElementById('newStationAddress').value.trim();
             const status = document.getElementById('newStationStatus').value;
-            if (!name || !address) return;
+            if (!name || !address || !zone) return;
 
-            const baseCoords = ZONE_COORDINATES_MAP[zone];
+            // un quartiere scritto a mano non ha coordinate note: il pin va al centro città
+            const baseCoords = ZONE_COORDINATES_MAP[zone] || ZONE_COORDINATES_MAP["Centro / Mellusi"];
             const newId = 'bn-custom-' + Date.now();
             const newStation = {
                 id: newId, name, brand, address, zone,
@@ -746,7 +778,7 @@
             };
 
             stationsData.unshift(newStation); selectedStationId = newId;
-            window.closeAddStationModal(); e.target.reset(); renderAll(); showToast("Nuovo distributore aggiunto!", `${name} è ora visibile.`);
+            window.closeAddStationModal(); e.target.reset(); window.toggleOtherZone(); renderAll(); showToast("Nuovo distributore aggiunto!", `${name} è ora visibile.`);
 
             if (db) {
                 try { await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('stations').doc(newId).set(newStation); } 
