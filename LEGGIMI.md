@@ -27,13 +27,17 @@ La configurazione Firebase dentro `app.js` è quella pubblica di un'app web: non
 - **Le regole di sicurezza non sono attive**: oggi chiunque può leggere e scrivere. Per attivarle: Firebase Console → Firestore → Regole → incolla `firestore.rules` → Pubblica (oppure `npx firebase-tools deploy --only firestore:rules --project pompe-di-benzina---benevento` con l'account giusto).
 - Anche con le regole attive, restano due limiti: chi crea molti account anonimi può votare più volte, e il database non verifica che lo stato mostrato coincida con i voti. Per chiuderli servono App Check e una Cloud Function.
 - Dopo l'attivazione delle regole non si possono più riscrivere i distributori dalla pagina: per azzerare i dati servono la console Firebase o un accesso da amministratore.
+- **Quota**: il progetto è sul piano gratuito Spark (circa 50.000 letture e 20.000 scritture al giorno, si azzera verso le 9 italiane). Con molti visitatori si esaurisce e i voti smettono di salvarsi: in quel caso il proprietario deve passare al piano Blaze (a consumo).
+- La pagina non riscrive mai i distributori esistenti: se il server non risponde ignora lo snapshot vuoto della cache, e il popolamento iniziale crea solo i documenti mancanti. (Prima di ottobre 2026 un utente offline poteva azzerare i voti di tutti.)
 
 ## Logica dei voti (in `app.js`)
 - Un voto a persona per distributore (l'identità è l'utente anonimo Firebase). Ripremere lo stesso stato toglie il voto; premerne un altro lo sposta.
-- Contano per lo stato solo i voti dei **45 minuti prima dell'ultimo voto** (`VOTE_WINDOW_MS`). I più vecchi restano visibili ma "in ombra" e non pesano. Un voto dopo una pausa fa ripartire il conteggio.
-- Vince lo stato con più voti recenti; a parità (anche 1-1-1) decide il voto più recente.
+- Vince lo stato con più voti. **A parità vince il peggiore** (Esaurita > Limitata > Aperta): con 10 Esaurita e 10 Aperta resta Esaurita, servono 11 Aperta.
+- **Riavvio dopo 45 minuti** (`VOTE_WINDOW_MS`): se un voto per uno stato diverso arriva quando sono passati 45 minuti dall'ultimo voto dello stato in vigore, il conteggio riparte da quel voto. I voti precedenti restano visibili ma "in ombra" e non pesano. Esempio: 10 Aperta con l'ultima alle 10:00; un Esaurita alle 10:50 rende subito la pompa Esaurita, alle 10:20 no.
+- Chi aggiunge un distributore con uno stato iniziale dà il primo voto, che segue la stessa regola.
+- `npm test` verifica la regola su casi d'esempio (`tests/regola-voti.test.js`): lanciarlo dopo ogni modifica a `splitVotes`/`deriveFromVotes`.
 - Lo stato mostrato si ricalcola sempre dai voti al caricamento (`normalizeStation`), mai dal valore salvato.
-- Funzioni principali: `deriveFromVotes`, `splitVotes`, `voteCounts`, `applyVoteToStation`, `persistVote` (transazione Firestore), `quickInstantFlag`, `submitStationFlag`.
+- Funzioni principali: `deriveFromVotes`, `splitVotes`, `winnerOf`, `voteCounts`, `applyVoteToStation`, `persistVote` (transazione Firestore), `quickInstantFlag`, `submitStationFlag`.
 - Il testo inserito dagli utenti passa sempre da `esc()` prima di finire nell'HTML: mantenerlo in ogni nuovo template.
 
 ## Interfaccia

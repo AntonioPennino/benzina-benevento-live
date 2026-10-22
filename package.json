@@ -4,7 +4,8 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "wrangler pages dev",
-    "deploy": "wrangler pages deploy --branch main --commit-dirty=true"
+    "deploy": "wrangler pages deploy --branch main --commit-dirty=true",
+    "test": "node tests/regola-voti.test.js"
   },
   "devDependencies": {
     "wrangler": "^4.152.0"

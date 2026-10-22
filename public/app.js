@@ -429,7 +429,8 @@
                 const total = counts.available + counts.limited + counts.closed;
                 const lv = lastVoteOf(st);
                 const lastCfg = lv ? getStatusConfig(lv.status) : null;
-                const isStale = lv && (Date.now() - lv.ts) > VOTE_WINDOW_MS;
+                // "vecchio" = lo stato in vigore non riceve conferme da 45 minuti: un voto diverso lo cambierebbe subito
+                const isStale = effectiveStatus !== 'unverified' && st.lastUpdated && (Date.now() - st.lastUpdated) >= VOTE_WINDOW_MS;
                 const mine = myVoteOf(st);
 
                 let fuelSectionHtml = effectiveStatus === 'unverified'
@@ -463,7 +464,7 @@
                         <div class="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
                             <div class="text-[11px] ${isStale ? 'text-amber-700 font-semibold' : 'text-slate-500'} flex items-center flex-wrap gap-1.5">
                                 <i class="fa-regular fa-clock text-slate-400"></i>
-                                ${lv ? `<span>Ultimo voto: <strong class="px-1.5 py-0.5 rounded-md border ${lastCfg.badgeClass}">${lastCfg.emoji} ${lastCfg.shortLabel}</strong> ${esc(formatRelativeTime(lv.ts).toLowerCase())}</span><span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-mono text-[10px]"><i class="fa-solid fa-users text-[9px] mr-0.5"></i>${total}</span>${isStale ? '<span>· nessun voto da oltre 45 min</span>' : ''}` : `<span class="text-slate-500 font-medium">In attesa del primo voto</span>`}
+                                ${lv ? `<span>Ultimo voto: <strong class="px-1.5 py-0.5 rounded-md border ${lastCfg.badgeClass}">${lastCfg.emoji} ${lastCfg.shortLabel}</strong> ${esc(formatRelativeTime(lv.ts).toLowerCase())}</span><span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-mono text-[10px]"><i class="fa-solid fa-users text-[9px] mr-0.5"></i>${total}</span>${isStale ? '<span>· stato non confermato da oltre 45 min</span>' : ''}` : `<span class="text-slate-500 font-medium">In attesa del primo voto</span>`}
                             </div>
                             <button onclick="window.openStationModal('${id}')" class="px-2 py-1 rounded-lg bg-slate-900 text-amber-400 text-[11px] font-bold"><i class="fa-solid fa-pen-to-square"></i> Dettagli</button>
                         </div>
@@ -593,18 +594,40 @@
         function myUid() { return currentUser?.uid || localDeviceId(); }
         function myVoteOf(st) { return st && st.votes ? (st.votes[myUid()] || null) : null; }
 
-        // Finestra dei voti "freschi": contano per lo stato solo i voti dei 45 minuti che precedono l'ultimo voto.
-        // I voti più vecchi restano visibili ma "in ombra": un nuovo voto dopo una pausa riparte da zero.
+        // Regola dei voti:
+        // - vince lo stato con più voti "in corso"; a parità vince il peggiore (Esaurita > Limitata > Aperta),
+        //   quindi con 10 Esaurita e 10 Aperta resta Esaurita e servono 11 Aperta;
+        // - se un voto per uno stato diverso arriva dopo 45 minuti dall'ultimo voto dello stato in vigore,
+        //   il conteggio riparte da quel voto: i voti precedenti restano visibili ma "in ombra" e non pesano.
         const VOTE_WINDOW_MS = 45 * 60 * 1000;
+        const STATUS_SEVERITY = { closed: 3, limited: 2, available: 1 };
 
+        function winnerOf(list) {
+            const counts = {};
+            list.forEach(v => { counts[v.status] = (counts[v.status] || 0) + 1; });
+            const top = Math.max(...Object.values(counts));
+            const status = Object.keys(counts).filter(k => counts[k] === top)
+                .sort((a, b) => STATUS_SEVERITY[b] - STATUS_SEVERITY[a])[0];
+            return { status, count: top };
+        }
+
+        // ripercorre i voti in ordine di tempo e applica il riavvio del conteggio
         function splitVotes(votes) {
-            const list = Object.entries(votes).map(([uid, v]) => ({ ...v, uid }));
-            if (!list.length) return { active: [], old: [] };
-            const latestTs = Math.max(...list.map(v => v.ts));
-            return {
-                active: list.filter(v => v.ts >= latestTs - VOTE_WINDOW_MS),
-                old: list.filter(v => v.ts < latestTs - VOTE_WINDOW_MS)
-            };
+            const list = Object.entries(votes).map(([uid, v]) => ({ ...v, uid })).sort((x, y) => x.ts - y.ts);
+            let active = [];
+            const old = [];
+            list.forEach(v => {
+                if (active.length) {
+                    const { status } = winnerOf(active);
+                    const lastOfWinner = Math.max(...active.filter(a => a.status === status).map(a => a.ts));
+                    if (v.status !== status && v.ts - lastOfWinner >= VOTE_WINDOW_MS) {
+                        old.push(...active);
+                        active = [];
+                    }
+                }
+                active.push(v);
+            });
+            return { active, old };
         }
 
         function deriveFromVotes(votes, legacy) {
@@ -613,14 +636,9 @@
                 if (legacy) return { ...legacy };
                 return { status: 'unverified', lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: 'Da verificare', lastNote: '', lastReporterId: null };
             }
-            const counts = {};
-            active.forEach(v => { counts[v.status] = (counts[v.status] || 0) + 1; });
-            const top = Math.max(...Object.values(counts));
-            const tied = Object.keys(counts).filter(k => counts[k] === top);
-            // vince lo stato con più voti freschi; a parità (anche 1-1-1) decide il voto più recente tra quelli a pari merito
-            const winner = active.filter(v => tied.includes(v.status)).sort((x, y) => y.ts - x.ts)[0].status;
+            const { status: winner, count } = winnerOf(active);
             const latest = active.filter(v => v.status === winner).sort((x, y) => y.ts - x.ts)[0];
-            return { status: winner, lastUpdated: latest.ts, confirmations: top, fuels: latest.fuels, queueLevel: latest.queueLevel, lastNote: latest.note, lastReporterId: latest.uid };
+            return { status: winner, lastUpdated: latest.ts, confirmations: count, fuels: latest.fuels, queueLevel: latest.queueLevel, lastNote: latest.note, lastReporterId: latest.uid };
         }
 
         // ultimo voto arrivato (di qualunque categoria), non lo stato in vigore
@@ -766,6 +784,16 @@
             // un quartiere scritto a mano non ha coordinate note: il pin va al centro città
             const baseCoords = ZONE_COORDINATES_MAP[zone] || ZONE_COORDINATES_MAP["Centro / Mellusi"];
             const newId = 'bn-custom-' + Date.now();
+            const note = document.getElementById('newStationNote').value.trim();
+            // lo stato scelto da chi aggiunge il distributore è il suo primo voto, così segue la stessa regola degli altri
+            const votes = status === 'unverified' ? {} : {
+                [myUid()]: {
+                    status, ts: Date.now(),
+                    fuels: { benzina: status !== 'closed', diesel: status !== 'closed', gpl: false },
+                    queueLevel: status === 'closed' ? 'Nessuna' : (status === 'limited' ? 'Moderata' : 'Scorrevole'),
+                    note: note || (status === 'available' ? 'Aperta.' : status === 'limited' ? 'Limitata.' : 'Chiusa.')
+                }
+            };
             const newStation = {
                 id: newId, name, brand, address, zone,
                 lat: Number((baseCoords.lat + (Math.random() - 0.5) * 0.004).toFixed(4)), lng: Number((baseCoords.lng + (Math.random() - 0.5) * 0.004).toFixed(4)),
@@ -773,8 +801,8 @@
                 status, lastUpdated: status !== 'unverified' ? Date.now() : null, confirmations: status !== 'unverified' ? 1 : 0,
                 fuels: { benzina: status !== 'closed', diesel: status !== 'closed', gpl: false },
                 queueLevel: status === 'unverified' ? 'Da verificare' : (status === 'closed' ? 'Nessuna' : 'Scorrevole'),
-                lastNote: document.getElementById('newStationNote').value.trim(),
-                seedVersion: SEED_VERSION, lastReporterId: currentUser?.uid || 'cittadino-bn'
+                lastNote: note,
+                seedVersion: SEED_VERSION, lastReporterId: currentUser?.uid || 'cittadino-bn', votes
             };
 
             stationsData.unshift(newStation); selectedStationId = newId;
