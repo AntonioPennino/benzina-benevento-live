@@ -1,32 +1,32 @@
         const SEED_VERSION = 2;
 
         const INITIAL_BENEVENTO_STATIONS = [
-            { id: "bn-station-14", name: "Eni - SS7 Appia (Tufara Valle)", brand: "Eni", address: "SS7 Appia, loc. Tufara Valle", zone: "Arteria SS7 Appia Sud-Ovest", lat: 41.0915, lng: 14.7185, svgX: 78, svgY: 435, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
-            { id: "bn-station-1", name: "Eni - Via Napoli", brand: "Eni", address: "Via Napoli 168", zone: "Rione Libertà", lat: 41.1245, lng: 14.7615, svgX: 295, svgY: 430, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
-            { id: "bn-station-2", name: "Eni - Via Meomartini", brand: "Eni", address: "Via Alfonso Meomartini 60", zone: "Zona Mellusi/Alta", lat: 41.1328, lng: 14.7912, svgX: 735, svgY: 280, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
-            { id: "bn-station-3", name: "Eni - Via Paolella", brand: "Eni", address: "Via Alfredo Paolella 4", zone: "Santa Colomba / Stadio", lat: 41.1192, lng: 14.7775, svgX: 520, svgY: 515, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
-            { id: "bn-station-4", name: "Q8 - Via Avellino", brand: "Q8", address: "Via Avellino 6", zone: "Centro / Pacevecchia", lat: 41.1310, lng: 14.7895, svgX: 685, svgY: 335, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
-            { id: "bn-station-5", name: "Q8easy - Contrada Epitaffio", brand: "Q8", address: "C.da Epitaffio 72", zone: "C.da Epitaffio / Ovest", lat: 41.1285, lng: 14.7480, svgX: 145, svgY: 365, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
-            { id: "bn-station-6", name: "Energas Q8 - Via Padre Pio", brand: "Energas", address: "Via Padre Pio SP71", zone: "Capodimonte / Rotonda dei Pentri", lat: 41.1415, lng: 14.7960, svgX: 790, svgY: 145, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
-            { id: "bn-station-7", name: "Tamoil 24h - Piazza Bissolati", brand: "Tamoil", address: "Piazza Bissolati / Via Grimoaldo Re 11", zone: "Rione Ferrovia", lat: 41.1402, lng: 14.7735, svgX: 470, svgY: 160, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
-            { id: "bn-station-8", name: "Tamoil - Via Bachelet", brand: "Tamoil", address: "Via Vittorio Bachelet", zone: "Pacevecchia", lat: 41.1345, lng: 14.8050, svgX: 880, svgY: 265, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
-            { id: "bn-station-9", name: "Esso - Via dei Longobardi", brand: "Esso", address: "Via dei Longobardi 10", zone: "Zona Ponticelli / Centro", lat: 41.1365, lng: 14.7830, svgX: 585, svgY: 235, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
-            { id: "bn-station-10", name: "IP - Via Pietro Nenni", brand: "IP", address: "Via Pietro Nenni 38", zone: "Zona Atlantici / Mellusi", lat: 41.1270, lng: 14.7885, svgX: 645, svgY: 392, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
-            { id: "bn-station-11", name: "Distributore Di.Si. - Viale Virgilio", brand: "Di.Si.", address: "Viale Virgilio snc", zone: "Rione Libertà / Ponte Vanvitelli", lat: 41.1315, lng: 14.7695, svgX: 410, svgY: 335, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
-            { id: "bn-station-12", name: "Conad Self 24h - Buonvento", brand: "Conad", address: "SS7 Appia / C.da San Vito", zone: "Buonvento / San Vito", lat: 41.1130, lng: 14.7520, svgX: 195, svgY: 575, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
-            { id: "bn-station-13", name: "Distributore C.da Piano Cappelle", brand: "Pompa Bianca", address: "Via Valfortore / C.da Piano Cappelle", zone: "C.da Piano Cappelle / Est", lat: 41.1170, lng: 14.8080, svgX: 890, svgY: 540, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION }
+            { id: "bn-station-14", name: "Eni - SS7 Appia (Tufara Valle)", brand: "Eni", address: "SS7 Appia, loc. Tufara Valle", zone: "Arteria SS7 Appia Sud-Ovest", lat: 41.0915, lng: 14.7185, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
+            { id: "bn-station-1", name: "Eni - Via Napoli", brand: "Eni", address: "Via Napoli 168", zone: "Rione Libertà", lat: 41.1245, lng: 14.7615, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
+            { id: "bn-station-2", name: "Eni - Via Meomartini", brand: "Eni", address: "Via Alfonso Meomartini 60", zone: "Zona Mellusi/Alta", lat: 41.1328, lng: 14.7912, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
+            { id: "bn-station-3", name: "Eni - Via Paolella", brand: "Eni", address: "Via Alfredo Paolella 4", zone: "Santa Colomba / Stadio", lat: 41.1192, lng: 14.7775, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
+            { id: "bn-station-4", name: "Q8 - Via Avellino", brand: "Q8", address: "Via Avellino 6", zone: "Centro / Pacevecchia", lat: 41.1310, lng: 14.7895, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
+            { id: "bn-station-5", name: "Q8easy - Contrada Epitaffio", brand: "Q8", address: "C.da Epitaffio 72", zone: "C.da Epitaffio / Ovest", lat: 41.1285, lng: 14.7480, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
+            { id: "bn-station-6", name: "Energas Q8 - Via Padre Pio", brand: "Energas", address: "Via Padre Pio SP71", zone: "Capodimonte / Rotonda dei Pentri", lat: 41.1415, lng: 14.7960, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
+            { id: "bn-station-7", name: "Tamoil 24h - Piazza Bissolati", brand: "Tamoil", address: "Piazza Bissolati / Via Grimoaldo Re 11", zone: "Rione Ferrovia", lat: 41.1402, lng: 14.7735, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
+            { id: "bn-station-8", name: "Tamoil - Via Bachelet", brand: "Tamoil", address: "Via Vittorio Bachelet", zone: "Pacevecchia", lat: 41.1345, lng: 14.8050, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
+            { id: "bn-station-9", name: "Esso - Via dei Longobardi", brand: "Esso", address: "Via dei Longobardi 10", zone: "Zona Ponticelli / Centro", lat: 41.1365, lng: 14.7830, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
+            { id: "bn-station-10", name: "IP - Via Pietro Nenni", brand: "IP", address: "Via Pietro Nenni 38", zone: "Zona Atlantici / Mellusi", lat: 41.1270, lng: 14.7885, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
+            { id: "bn-station-11", name: "Distributore Di.Si. - Viale Virgilio", brand: "Di.Si.", address: "Viale Virgilio snc", zone: "Rione Libertà / Ponte Vanvitelli", lat: 41.1315, lng: 14.7695, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
+            { id: "bn-station-12", name: "Conad Self 24h - Buonvento", brand: "Conad", address: "SS7 Appia / C.da San Vito", zone: "Buonvento / San Vito", lat: 41.1130, lng: 14.7520, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
+            { id: "bn-station-13", name: "Distributore C.da Piano Cappelle", brand: "Pompa Bianca", address: "Via Valfortore / C.da Piano Cappelle", zone: "C.da Piano Cappelle / Est", lat: 41.1170, lng: 14.8080, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION }
         ];
 
         const ZONE_COORDINATES_MAP = {
-            "Rione Libertà": { lat: 41.1260, lng: 14.7640, svgX: 330, svgY: 415 },
-            "Centro / Mellusi": { lat: 41.1305, lng: 14.7850, svgX: 615, svgY: 340 },
-            "Rione Ferrovia": { lat: 41.1410, lng: 14.7710, svgX: 440, svgY: 150 },
-            "Pacevecchia": { lat: 41.1335, lng: 14.8010, svgX: 830, svgY: 270 },
-            "Santa Colomba / Stadio": { lat: 41.1185, lng: 14.7750, svgX: 490, svgY: 530 },
-            "Capodimonte / Pentri": { lat: 41.1425, lng: 14.7930, svgX: 760, svgY: 135 },
-            "C.da Epitaffio / Ovest": { lat: 41.1295, lng: 14.7510, svgX: 165, svgY: 350 },
-            "Buonvento / San Vito": { lat: 41.1145, lng: 14.7545, svgX: 220, svgY: 560 },
-            "C.da Piano Cappelle / Est": { lat: 41.1185, lng: 14.8040, svgX: 855, svgY: 520 }
+            "Rione Libertà": { lat: 41.1260, lng: 14.7640 },
+            "Centro / Mellusi": { lat: 41.1305, lng: 14.7850 },
+            "Rione Ferrovia": { lat: 41.1410, lng: 14.7710 },
+            "Pacevecchia": { lat: 41.1335, lng: 14.8010 },
+            "Santa Colomba / Stadio": { lat: 41.1185, lng: 14.7750 },
+            "Capodimonte / Pentri": { lat: 41.1425, lng: 14.7930 },
+            "C.da Epitaffio / Ovest": { lat: 41.1295, lng: 14.7510 },
+            "Buonvento / San Vito": { lat: 41.1145, lng: 14.7545 },
+            "C.da Piano Cappelle / Est": { lat: 41.1185, lng: 14.8040 }
         };
 
         const firebaseConfig = {
@@ -46,7 +46,6 @@
         let currentSortBy = 'recent';
         let selectedStationId = null;
         let modalFlagStatusChoice = 'available';
-        let mapMode = 'schematic'; 
 
         let leafletMap = null;
         let leafletMarkers = {};
@@ -115,16 +114,18 @@
                 const stationsColRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('stations');
 
                 stationsColRef.onSnapshot(async (snapshot) => {
-                    updateConnectionUI(true, "Sincronizzazione Cloud Live attiva");
-
                     if (snapshot.empty) {
                         // Uno snapshot vuoto "dalla cache" arriva quando il server non risponde (rete assente,
                         // quota esaurita): non vuol dire che il database sia vuoto. In quel caso non si scrive nulla.
-                        if (snapshot.metadata.fromCache) return;
+                        if (snapshot.metadata.fromCache) {
+                            updateConnectionUI(false, "Database non raggiungibile: riprovo…");
+                            return;
+                        }
                         console.warn("Database vuoto! Tento il caricamento automatico...");
                         await seedInitialStationsToFirestore();
                         return;
                     }
+                    updateConnectionUI(true, "Sincronizzazione Cloud Live attiva");
 
                     const legacyPressDoc = snapshot.docs.find(d => d.id === 'bn-station-14' && d.data().isPressSource);
                     if (legacyPressDoc) {
@@ -145,8 +146,6 @@
                             ...data,
                             id: docSnap.id,
                             status: ['available', 'limited', 'closed', 'unverified'].includes(data.status) ? data.status : 'unverified',
-                            svgX: Number(data.svgX) || seedRef.svgX || 500,
-                            svgY: Number(data.svgY) || seedRef.svgY || 340,
                             fuels: parseFuels(data.fuels)
                         }));
                     });
@@ -208,7 +207,6 @@
 
         function renderAll() {
             renderCounters();
-            renderSchematicSvgPins();
             renderLeafletMarkers();
             renderStationsList();
             updateMapQuickBanner();
@@ -266,52 +264,6 @@
             });
         }
 
-        function renderSchematicSvgPins() {
-            const layer = document.getElementById('svgStationsLayer');
-            if (!layer) return;
-
-            const filteredIds = new Set(getFilteredAndSortedStations().map(s => s.id));
-            let svgHtml = '';
-
-            stationsData.forEach(station => {
-                const seedRef = INITIAL_BENEVENTO_STATIONS.find(i => i.id === station.id) || {};
-                const x = Number(station.svgX) || seedRef.svgX || 500;
-                const y = Number(station.svgY) || seedRef.svgY || 340;
-
-                const cfg = getStatusConfig(station.status);
-                const isVisible = filteredIds.has(station.id);
-                const isSelected = selectedStationId === station.id;
-                const opacity = isVisible ? '1' : '0.2';
-                const fullName = station.name || 'Pompa';
-                const shortTitle = esc(fullName.length > 18 ? fullName.substring(0, 17) + '…' : fullName);
-                const lv = lastVoteOf(station);
-                const isVerifiedAndRecent = station.status !== 'unverified' && lv && (Date.now() - lv.ts) < VOTE_WINDOW_MS;
-
-                svgHtml += `
-                    <g class="svg-pin-group ${isSelected ? 'svg-pin-selected' : ''}" style="opacity: ${opacity};" onclick="window.handlePinClick('${esc(station.id)}')">
-                        ${isVisible && (isVerifiedAndRecent || isSelected) && cfg.pulseClass ? `<circle cx="${x}" cy="${y}" r="22" fill="${cfg.hex}" class="${cfg.pulseClass}" />` : ''}
-
-                        <!-- Label Pill sotto il pin -->
-                        <g transform="translate(${x}, ${y + 27})" filter="url(#cardShadow)">
-                            <rect x="-66" y="-10" width="132" height="20" rx="6" fill="${isSelected ? '#0F172A' : '#FFFFFF'}" stroke="${cfg.hex}" stroke-width="1.8" />
-                            <text x="0" y="3.5" text-anchor="middle" font-family="Inter, sans-serif" font-size="9.5" font-weight="800" fill="${isSelected ? '#FACC15' : '#0F172A'}">${shortTitle}</text>
-                        </g>
-
-                        <!-- Cerchio Principale Segnaposto -->
-                        <circle cx="${x}" cy="${y}" r="${isSelected ? 19 : 16}" fill="${cfg.hex}" stroke="#FFFFFF" stroke-width="3.5" filter="url(#pinShadow)" />
-
-                        <!-- Icona Vettoriale Pompa Carburante -->
-                        <g transform="translate(${x - 6}, ${y - 7}) scale(0.65)">
-                            <rect x="1" y="2" width="12" height="15" rx="2" fill="none" stroke="#FFFFFF" stroke-width="2.2" />
-                            <rect x="3" y="4" width="8" height="4" rx="1" fill="#FFFFFF" />
-                            <path d="M 13 6 L 16 6 L 16 14 L 14 16" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" />
-                        </g>
-                    </g>`;
-            });
-            layer.innerHTML = svgHtml;
-        }
-
-
         function initLeafletMapIfNeeded() {
             if (leafletMap) return;
             leafletMap = L.map('leafletMap', { center: [41.1250, 14.7720], zoom: 12 });
@@ -319,6 +271,8 @@
            maxZoom: 19,
            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
            }).addTo(leafletMap);
+            // toccare la mappa fuori da una pompa chiude la scheda (Leaflet non lo segnala dopo un trascinamento)
+            leafletMap.on('click', () => window.clearMapSelection());
             renderLeafletMarkers();
         }
 
@@ -486,20 +440,20 @@
             if (leafletMap) leafletMap.setView([41.1250, 14.7720], 12);
         };
 
-        window.switchMapMode = function(mode) {
-            mapMode = mode;
-            document.getElementById('schematicMapContainer').classList.toggle('hidden', mode !== 'schematic');
-            document.getElementById('roadMapContainer').classList.toggle('hidden', mode === 'schematic');
-            const on = 'px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-white text-slate-900 shadow-sm';
-            const off = 'px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-slate-600 hover:text-slate-900';
-            document.getElementById('btnMapSchematic').className = mode === 'schematic' ? on : off;
-            document.getElementById('btnMapRoad').className = mode === 'road' ? on : off;
-            if (mode === 'road') {
-                initLeafletMapIfNeeded();
-                setTimeout(() => { if (leafletMap) leafletMap.invalidateSize(); renderLeafletMarkers(); }, 80);
-            }
+        // chiude la scheda della pompa senza spostare la mappa
+        window.clearMapSelection = function() {
+            if (!selectedStationId) return;
+            selectedStationId = null;
+            renderAll();
         };
 
+        // un tocco fuori dalla scheda la chiude; la mappa è gestita da Leaflet (sopra), le finestre
+        // aperte e i pulsanti che selezionano un'altra pompa si occupano da soli della selezione
+        document.addEventListener('click', (e) => {
+            if (!selectedStationId) return;
+            if (e.target.closest('#mapQuickBanner, #leafletMap, #stationModal, #addStationModal, [onclick], button, a, input, select, label')) return;
+            window.clearMapSelection();
+        });
 
         window.setFilterStatus = function(status) { currentFilterStatus = status; renderAll(); };
         window.handleSearchChange = function(val) { currentSearchQuery = val; document.getElementById('clearSearchBtn').classList.toggle('hidden', !val); renderAll(); };
@@ -511,21 +465,25 @@
             const st = stationsData.find(s => s.id === stationId);
             if (!st) return;
             selectedStationId = stationId;
-            renderSchematicSvgPins(); updateMapQuickBanner();
+            renderLeafletMarkers(); updateMapQuickBanner();
 
             document.getElementById('modalBrandBadge').textContent = st.brand || 'Distributore';
             document.getElementById('modalZoneBadge').textContent = st.zone;
             document.getElementById('modalStationName').textContent = st.name;
             document.getElementById('modalStationAddress').innerHTML = `${esc(st.address)}`;
-            const mapsQuery = encodeURIComponent(`${st.name} ${st.address} Benevento`);
+            const mapsQuery = encodeURIComponent(`${st.name} ${st.address} ${st.comune || 'Benevento'}`);
             document.getElementById('modalGoogleMapsLink').href = `https://www.google.com/maps/search/?api=1&query=${mapsQuery}`;
 
             const cfg = getStatusConfig(st.status || 'unverified');
             const cnt = voteCounts(st);
             const mine = myVoteOf(st);
+            const lv = lastVoteOf(st);
+            const lastInfo = lv
+                ? `Ultima segnalazione: ${getStatusConfig(lv.status).emoji} ${esc(getStatusConfig(lv.status).shortLabel)} · <strong>${esc(formatRelativeTime(lv.ts).toLowerCase())}</strong> (${esc(formatExactTime(lv.ts))})`
+                : 'Nessuna segnalazione ancora';
             document.getElementById('modalStatusBox').className = `px-5 py-3.5 border-b flex flex-wrap items-center justify-between gap-2 ${cfg.badgeClass}`;
             document.getElementById('modalStatusBox').innerHTML = `
-                <div class="flex items-center gap-2"><span class="text-lg">${cfg.emoji}</span><div><div class="text-xs font-extrabold uppercase">${cfg.label}</div><div class="text-[11px] font-medium opacity-80">Voti recenti: 🟢 ${cnt.available} · 🟡 ${cnt.limited} · 🔴 ${cnt.closed}${mine ? ` · il tuo voto: ${getStatusConfig(mine.status).shortLabel}` : ''}</div></div></div>
+                <div class="flex items-center gap-2"><span class="text-lg">${cfg.emoji}</span><div><div class="text-xs font-extrabold uppercase">${cfg.label}</div><div class="text-[11px] font-medium opacity-80">Voti recenti: 🟢 ${cnt.available} · 🟡 ${cnt.limited} · 🔴 ${cnt.closed}${mine ? ` · il tuo voto: ${getStatusConfig(mine.status).shortLabel}` : ''}</div><div class="text-[11px] font-semibold"><i class="fa-regular fa-clock mr-1"></i>${lastInfo}</div></div></div>
             `;
             ['available', 'limited', 'closed'].forEach(k => {
                 const el = document.getElementById(`flagCount-${k}`);
@@ -761,28 +719,68 @@
         window.openAddStationModal = () => document.getElementById('addStationModal').classList.replace('hidden', 'flex');
         window.closeAddStationModal = () => document.getElementById('addStationModal').classList.replace('flex', 'hidden');
 
-        // "Altro quartiere…": compare il campo libero, obbligatorio solo in quel caso
+        // "Altro quartiere…" / "Altro Comune…": compare il campo libero, obbligatorio solo in quei casi
         window.toggleOtherZone = function() {
             const other = document.getElementById('newStationZoneOther');
-            const isOther = document.getElementById('newStationZone').value === '__altro__';
+            const choice = document.getElementById('newStationZone').value;
+            const isOther = choice === '__altro__' || choice === '__comune__';
+            other.placeholder = choice === '__comune__' ? 'Scrivi il comune' : 'Scrivi il quartiere';
             other.classList.toggle('hidden', !isOther);
             other.required = isOther;
             if (isOther) other.focus();
         };
 
+        const BENEVENTO_CENTER = { lat: 41.1300, lng: 14.7820 };
+        function distanceKm(a, b) {
+            const dLat = (a.lat - b.lat) * 111, dLng = (a.lng - b.lng) * 111 * Math.cos(a.lat * Math.PI / 180);
+            return Math.hypot(dLat, dLng);
+        }
+
+        // posizione esatta di un indirizzo dal servizio di ricerca di OpenStreetMap (Nominatim); null se non trovato
+        async function geocodeAddress(address, place) {
+            const q = address.toLowerCase().includes(place.toLowerCase()) ? address : `${address}, ${place}`;
+            const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=it&accept-language=it&q=${encodeURIComponent(q)}`;
+            try {
+                const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+                if (!res.ok) return null;
+                const [hit] = await res.json();
+                if (!hit) return null;
+                const pos = { lat: Number(hit.lat), lng: Number(hit.lon) };
+                return Number.isFinite(pos.lat) && Number.isFinite(pos.lng) ? pos : null;
+            } catch (err) {
+                console.warn('Ricerca indirizzo non riuscita', err);
+                return null;
+            }
+        }
+
         window.handleAddStationSubmit = async function(e) {
             e.preventDefault();
             const brand = document.getElementById('newStationBrand').value;
             const zoneChoice = document.getElementById('newStationZone').value;
-            const isOtherZone = zoneChoice === '__altro__';
-            const zone = isOtherZone ? document.getElementById('newStationZoneOther').value.trim() : zoneChoice;
+            const isOtherComune = zoneChoice === '__comune__';
+            const isFreeText = zoneChoice === '__altro__' || isOtherComune;
+            const zone = isFreeText ? document.getElementById('newStationZoneOther').value.trim() : zoneChoice;
             const name = document.getElementById('newStationName').value.trim();
             const address = document.getElementById('newStationAddress').value.trim();
             const status = document.getElementById('newStationStatus').value;
             if (!name || !address || !zone) return;
 
-            // un quartiere scritto a mano non ha coordinate note: il pin va al centro città
-            const baseCoords = ZONE_COORDINATES_MAP[zone] || ZONE_COORDINATES_MAP["Centro / Mellusi"];
+            // la pompa va nel punto esatto dell'indirizzo; a Benevento, se la ricerca fallisce o finisce
+            // lontano dalla città, si usa la zona scelta (o il centro per un quartiere scritto a mano)
+            const submitBtn = document.getElementById('addStationSubmit');
+            const submitLabel = submitBtn.textContent;
+            submitBtn.disabled = true; submitBtn.textContent = "Cerco l'indirizzo…";
+            let pos = await geocodeAddress(address, isOtherComune ? zone : 'Benevento');
+            submitBtn.disabled = false; submitBtn.textContent = submitLabel;
+            if (isOtherComune && !pos) {
+                showToast('Indirizzo non trovato', `Controlla via e comune (${zone}) e riprova.`);
+                return;
+            }
+            if (!isOtherComune && pos && distanceKm(pos, BENEVENTO_CENTER) > 15) pos = null;
+            if (!pos) {
+                const base = ZONE_COORDINATES_MAP[zone] || ZONE_COORDINATES_MAP["Centro / Mellusi"];
+                pos = { lat: base.lat + (Math.random() - 0.5) * 0.004, lng: base.lng + (Math.random() - 0.5) * 0.004 };
+            }
             const newId = 'bn-custom-' + Date.now();
             const note = document.getElementById('newStationNote').value.trim();
             // lo stato scelto da chi aggiunge il distributore è il suo primo voto, così segue la stessa regola degli altri
@@ -795,9 +793,8 @@
                 }
             };
             const newStation = {
-                id: newId, name, brand, address, zone,
-                lat: Number((baseCoords.lat + (Math.random() - 0.5) * 0.004).toFixed(4)), lng: Number((baseCoords.lng + (Math.random() - 0.5) * 0.004).toFixed(4)),
-                svgX: Math.min(940, Math.max(60, baseCoords.svgX + Math.floor(Math.random() * 44) - 22)), svgY: Math.min(620, Math.max(60, baseCoords.svgY + Math.floor(Math.random() * 44) - 22)),
+                id: newId, name, brand, address, zone, ...(isOtherComune ? { comune: zone } : {}),
+                lat: Number(pos.lat.toFixed(5)), lng: Number(pos.lng.toFixed(5)),
                 status, lastUpdated: status !== 'unverified' ? Date.now() : null, confirmations: status !== 'unverified' ? 1 : 0,
                 fuels: { benzina: status !== 'closed', diesel: status !== 'closed', gpl: false },
                 queueLevel: status === 'unverified' ? 'Da verificare' : (status === 'closed' ? 'Nessuna' : 'Scorrevole'),
@@ -806,7 +803,8 @@
             };
 
             stationsData.unshift(newStation); selectedStationId = newId;
-            window.closeAddStationModal(); e.target.reset(); window.toggleOtherZone(); renderAll(); showToast("Nuovo distributore aggiunto!", `${name} è ora visibile.`);
+            window.closeAddStationModal(); e.target.reset(); window.toggleOtherZone(); renderAll();
+            if (leafletMap) leafletMap.setView([newStation.lat, newStation.lng], 15); showToast("Nuovo distributore aggiunto!", `${name} è ora visibile.`);
 
             if (db) {
                 try { await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('stations').doc(newId).set(newStation); } 
@@ -828,6 +826,7 @@
 
         // Rendering immediato all'apertura del file
         window.onload = function() {
+            initLeafletMapIfNeeded();
             renderAll();
             initFirebaseAndSync();
         };
@@ -901,143 +900,12 @@
                 if (e.key !== 'Escape') return;
                 if (isOpen('stationModal')) window.closeStationModal();
                 else if (isOpen('addStationModal')) window.closeAddStationModal();
+                else window.clearMapSelection();
             });
             MODALS.forEach(id => document.getElementById(id).addEventListener('mousedown', (e) => {
                 if (e.target.id !== id) return;
                 if (id === 'stationModal') window.closeStationModal(); else window.closeAddStationModal();
             }));
-        })();
-
-        // ---- Mappa semplificata: zoom (rotella, pizzico, pulsanti) e trascinamento ----
-        (function() {
-            const svg = document.getElementById('beneventoSchematicSvg');
-            const box = document.getElementById('schematicMapContainer');
-            if (!svg || !box) return;
-
-            const W = 1000, H = 680, MAX_ZOOM = 6;
-            let vb = { x: 0, y: 0, w: W, h: H };
-            const pointers = new Map();
-            let dragMoved = false, pinchStart = null;
-
-            svg.style.touchAction = 'none';
-            svg.style.cursor = 'grab';
-
-            function apply() {
-                // il rettangolo visibile resta dentro la mappa
-                vb.w = Math.min(W, Math.max(W / MAX_ZOOM, vb.w));
-                vb.h = vb.w * (H / W);
-                vb.x = Math.min(W - vb.w, Math.max(0, vb.x));
-                vb.y = Math.min(H - vb.h, Math.max(0, vb.y));
-                svg.setAttribute('viewBox', `${vb.x.toFixed(1)} ${vb.y.toFixed(1)} ${vb.w.toFixed(1)} ${vb.h.toFixed(1)}`);
-                svg.style.cursor = vb.w < W ? 'grab' : 'default';
-                const zin = document.getElementById('mapZoomIn'), zout = document.getElementById('mapZoomOut');
-                if (zin) zin.disabled = vb.w <= W / MAX_ZOOM + 0.5;
-                if (zout) zout.disabled = vb.w >= W - 0.5;
-            }
-
-            // da coordinate dello schermo a coordinate della mappa
-            function toMap(cx, cy) {
-                const r = svg.getBoundingClientRect();
-                return { x: vb.x + (cx - r.left) / r.width * vb.w, y: vb.y + (cy - r.top) / r.height * vb.h };
-            }
-
-            // zoom di un fattore f mantenendo fermo il punto sotto (cx, cy)
-            function zoomAt(f, cx, cy) {
-                const p = toMap(cx, cy);
-                const r = svg.getBoundingClientRect();
-                const nw = Math.min(W, Math.max(W / MAX_ZOOM, vb.w / f));
-                const nh = nw * (H / W);
-                vb.x = p.x - (cx - r.left) / r.width * nw;
-                vb.y = p.y - (cy - r.top) / r.height * nh;
-                vb.w = nw; vb.h = nh;
-                apply();
-            }
-
-            function zoomCenter(f) {
-                const r = svg.getBoundingClientRect();
-                zoomAt(f, r.left + r.width / 2, r.top + r.height / 2);
-            }
-
-            window.mapZoomReset = function() { vb = { x: 0, y: 0, w: W, h: H }; apply(); };
-
-            svg.addEventListener('wheel', (e) => {
-                e.preventDefault();
-                zoomAt(Math.exp(-e.deltaY * 0.0015), e.clientX, e.clientY);
-            }, { passive: false });
-
-            svg.addEventListener('pointerdown', (e) => {
-                pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY });
-                dragMoved = false;
-                if (pointers.size === 2) {
-                    const [a, b] = [...pointers.values()];
-                    pinchStart = { d: Math.hypot(a.x - b.x, a.y - b.y) };
-                    dragMoved = true;
-                }
-            });
-
-            svg.addEventListener('pointermove', (e) => {
-                const p = pointers.get(e.pointerId);
-                if (!p) return;
-                const dx = e.clientX - p.x, dy = e.clientY - p.y;
-
-                if (pointers.size === 2 && pinchStart) {
-                    const [a, b] = [...pointers.values()];
-                    const before = Math.hypot(a.x - b.x, a.y - b.y);
-                    p.x = e.clientX; p.y = e.clientY;
-                    const [a2, b2] = [...pointers.values()];
-                    const now = Math.hypot(a2.x - b2.x, a2.y - b2.y);
-                    if (before > 0 && now > 0) zoomAt(now / before, (a2.x + b2.x) / 2, (a2.y + b2.y) / 2);
-                    // sposta anche il centro del pizzico
-                    const r = svg.getBoundingClientRect();
-                    const mdx = dx / 2, mdy = dy / 2;
-                    vb.x -= mdx / r.width * vb.w; vb.y -= mdy / r.height * vb.h;
-                    apply();
-                    return;
-                }
-
-                if (!dragMoved && Math.hypot(e.clientX - p.sx, e.clientY - p.sy) < 6) return;
-                if (!dragMoved) { dragMoved = true; try { svg.setPointerCapture(e.pointerId); } catch (err) {} }
-                const r = svg.getBoundingClientRect();
-                vb.x -= dx / r.width * vb.w; vb.y -= dy / r.height * vb.h;
-                p.x = e.clientX; p.y = e.clientY;
-                apply();
-            });
-
-            const end = (e) => {
-                pointers.delete(e.pointerId);
-                if (pointers.size < 2) pinchStart = null;
-                try { svg.releasePointerCapture(e.pointerId); } catch (err) {}
-            };
-            svg.addEventListener('pointerup', end);
-            svg.addEventListener('pointercancel', end);
-            svg.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') pointers.delete(e.pointerId); });
-
-            // dopo un trascinamento il tocco finale non deve aprire il distributore sotto il dito
-            svg.addEventListener('click', (e) => {
-                if (dragMoved) { e.stopPropagation(); e.preventDefault(); dragMoved = false; }
-            }, true);
-
-            // pulsanti + / - / ripristina
-            const ctl = document.createElement('div');
-            ctl.className = 'absolute bottom-2.5 left-2.5 z-10 flex flex-row overflow-hidden rounded-xl border border-slate-300 bg-white shadow-md';
-            const mk = (id, icon, label, fn) => {
-                const b = document.createElement('button');
-                b.id = id; b.type = 'button'; b.setAttribute('aria-label', label); b.title = label;
-                b.className = 'w-10 h-10 sm:w-9 sm:h-9 flex items-center justify-center text-slate-700 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-white transition border-r border-slate-200 last:border-r-0';
-                b.innerHTML = `<i class="fa-solid ${icon}"></i>`;
-                b.addEventListener('click', fn);
-                ctl.appendChild(b);
-            };
-            mk('mapZoomIn', 'fa-plus', 'Ingrandisci', () => zoomCenter(1.6));
-            mk('mapZoomOut', 'fa-minus', 'Riduci', () => zoomCenter(1 / 1.6));
-            mk('mapZoomReset', 'fa-expand', 'Mostra tutta la mappa', () => window.mapZoomReset());
-            box.appendChild(ctl);
-
-            // "Centra mappa" riporta anche lo zoom a tutta la città
-            const origReset = window.resetMapSelection;
-            window.resetMapSelection = function() { origReset.apply(this, arguments); window.mapZoomReset(); };
-
-            apply();
         })();
 
         // ---- Mobile: vista Mappa / Elenco ----
