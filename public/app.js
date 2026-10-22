@@ -28,6 +28,11 @@
             "bn-custom-1792688909975": { lat: 41.31061, lng: 14.87894 }  // Q8 - San Marco dei Cavoti (paese)
         };
 
+        // Voci da non mostrare (aggiunte per errore o doppioni): restano nel database ma la pagina le ignora.
+        const HIDDEN_STATIONS = new Set([
+            "bn-custom-1792679821068" // "Benevento": nome e indirizzo "Benevento", nessun distributore reale
+        ]);
+
         const ZONE_COORDINATES_MAP = {
             "Rione Libertà": { lat: 41.1260, lng: 14.7640 },
             "Centro / Mellusi": { lat: 41.1305, lng: 14.7850 },
@@ -149,6 +154,7 @@
                     snapshot.forEach((docSnap) => {
                         // ignora documenti con id anomali (gli id finiscono in attributi HTML)
                         if (!/^bn-(station|custom)-\d+$/.test(docSnap.id)) return;
+                        if (HIDDEN_STATIONS.has(docSnap.id)) return;
                         const data = docSnap.data();
                         const seedRef = INITIAL_BENEVENTO_STATIONS.find(i => i.id === docSnap.id) || {};
                         // per i distributori iniziali e per quelli corretti vale la posizione scritta nel codice
