@@ -17,13 +17,13 @@
             { id: "bn-station-13", name: "Distributore C.da Piano Cappelle", brand: "Pompa Bianca", address: "Via Valfortore / C.da Piano Cappelle", zone: "C.da Piano Cappelle / Est", lat: 41.10367, lng: 14.82453, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION }
         ];
 
-        // Posizioni verificate (distributori reali su OpenStreetMap, o la via quando il distributore non c'è):
-        // hanno la precedenza sulle coordinate salvate, che per molti distributori erano approssimative.
-        // Per correggere una pompa basta aggiungere qui il suo id.
-        const POSITION_FIXES = {
+        // Correzioni ai distributori aggiunti dagli utenti: posizioni verificate (distributori reali su
+        // OpenStreetMap, o la via quando il distributore non c'è) ed eventuali nome/marchio/indirizzo.
+        // Hanno la precedenza sui dati salvati. Per correggere una pompa basta aggiungere qui il suo id.
+        const STATION_FIXES = {
             "bn-custom-1792675781566": { lat: 41.15123, lng: 14.77953 }, // Beneco - Via dei Liguri Bebiani
             "bn-custom-1792607627389": { lat: 41.11268, lng: 14.80072 }, // Sudpetroli - Via Fratelli Rosselli (via)
-            "bn-custom-1792688137608": { lat: 41.14552, lng: 14.76663 }, // Rotonda dei Pentri
+            "bn-custom-1792688137608": { lat: 41.14487, lng: 14.76673, name: "Esso - Rotonda dei Pentri", brand: "Esso", address: "Rotonda dei Pentri (Rotonda di Padre Pio)" },
             "bn-custom-1792687945441": { lat: 41.12129, lng: 14.76954 }, // Via Napoli (via)
             "bn-custom-1792688909975": { lat: 41.31061, lng: 14.87894 }  // Q8 - San Marco dei Cavoti (paese)
         };
@@ -157,8 +157,8 @@
                         if (HIDDEN_STATIONS.has(docSnap.id)) return;
                         const data = docSnap.data();
                         const seedRef = INITIAL_BENEVENTO_STATIONS.find(i => i.id === docSnap.id) || {};
-                        // per i distributori iniziali e per quelli corretti vale la posizione scritta nel codice
-                        const position = POSITION_FIXES[docSnap.id] || (seedRef.id ? { lat: seedRef.lat, lng: seedRef.lng } : {});
+                        // per i distributori iniziali e per quelli corretti valgono posizione (e correzioni) scritte nel codice
+                        const position = STATION_FIXES[docSnap.id] || (seedRef.id ? { lat: seedRef.lat, lng: seedRef.lng } : {});
                         
                         loadedStations.push(normalizeStation({
                             ...seedRef,
