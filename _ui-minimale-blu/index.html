@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Benzina Benevento Live - Monitoraggio Carburanti</title>
+    <meta name="description" content="Stato dei distributori di carburante a Benevento, segnalato dai cittadini in tempo reale.">
+    <meta name="theme-color" content="#111a2e">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><circle cx=%2216%22 cy=%2216%22 r=%2212%22 fill=%22%231a1a19%22/></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <div class="notice">
+        <div class="wrap">
+            <span><strong>Emergenza sciopero TIR</strong><span class="hide-sm"> · monitoraggio civico dei distributori di Benevento</span></span>
+            <span class="conn" id="connectionBadge" role="status">
+                <span id="connectionDot" class="dot"></span>
+                <span id="connectionText" class="hide-sm">Connessione in corso…</span>
+            </span>
+        </div>
+    </div>
+
+    <header class="topbar">
+        <div class="wrap">
+            <div class="brand">
+                <svg class="brand-mark" viewBox="0 0 44 44" aria-hidden="true">
+                    <rect width="44" height="44" rx="12" fill="#2a52e8"/>
+                    <g fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="12" y="10" width="14" height="24" rx="2.5"/>
+                        <path d="M12 18h14"/>
+                        <path d="M26 16h3.5a2.5 2.5 0 0 1 2.5 2.5V28a2 2 0 0 0 4 0V20l-3-3"/>
+                    </g>
+                </svg>
+                <div>
+                    <h1>Benzina Benevento <span class="live">Live</span></h1>
+                    <p>Quali distributori hanno carburante? Lo dicono i cittadini, con un voto.</p>
+                </div>
+            </div>
+            <button onclick="openAddStationModal()" class="btn btn-primary btn-add"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M8 2.5v11M2.5 8h11"/></svg><span class="lbl-long">Nuovo distributore</span><span class="lbl-short">Nuovo</span></button>
+        </div>
+    </header>
+
+    <section class="news" aria-label="Notizie dalla stampa locale">
+        <div class="wrap">
+            <div class="news-head"><span class="tag">Stampa locale</span> <span id="pressNewsUpdated"></span><button id="newsToggle" class="link hidden" onclick="toggleNews()">Mostra tutte</button></div>
+            <ul id="pressNewsList"><li class="empty">Caricamento…</li></ul>
+        </div>
+    </section>
+
+    <nav class="viewbar" aria-label="Vista">
+        <div class="wrap">
+            <div class="tabs tabs-wide" role="group">
+                <button id="btnViewList" class="is-active" onclick="setView('list')">Elenco</button>
+                <button id="btnViewMap" onclick="setView('map')">Mappa</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="wrap">
+
+        <section class="list-col" aria-label="Elenco distributori">
+            <div class="filters">
+                <div class="search">
+                    <input type="search" id="searchInput" oninput="handleSearchChange(this.value)" placeholder="Cerca per via, marchio o quartiere" autocomplete="off" aria-label="Cerca distributore">
+                    <button id="clearSearchBtn" class="hidden" onclick="clearSearch()" aria-label="Cancella ricerca"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 4l10 10M14 4L4 14"/></svg></button>
+                </div>
+
+                <div class="chips" role="group" aria-label="Filtra per stato">
+                    <button id="pill-all" class="chip is-active" onclick="setFilterStatus('all')">Tutti <span class="n" id="count-all">0</span></button>
+                    <button id="pill-available" class="chip" onclick="setFilterStatus('available')"><span class="dot s-available"></span>Aperti <span class="n" id="count-available">0</span></button>
+                    <button id="pill-limited" class="chip" onclick="setFilterStatus('limited')"><span class="dot s-limited"></span>Limitati <span class="n" id="count-limited">0</span></button>
+                    <button id="pill-closed" class="chip" onclick="setFilterStatus('closed')"><span class="dot s-closed"></span>Esauriti <span class="n" id="count-closed">0</span></button>
+                    <button id="pill-unverified" class="chip" onclick="setFilterStatus('unverified')"><span class="dot s-unverified"></span>Da verificare <span class="n" id="count-unverified">0</span></button>
+                </div>
+
+                <div class="sortrow">
+                    <span id="resultCount" aria-live="polite"></span>
+                    <label for="sortSelect" class="sr">Ordina per</label>
+                    <select id="sortSelect" onchange="handleSortChange(this.value)">
+                        <option value="recent">Aggiornati di recente</option>
+                        <option value="status">Prima i disponibili</option>
+                        <option value="unverified">Prima da verificare</option>
+                        <option value="name">Nome (A-Z)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="stationsListContainer"></div>
+        </section>
+
+        <section class="map-col" aria-label="Mappa">
+            <div class="map-card">
+                <div class="map-head">
+                    <span class="t">Mappa</span>
+                    <div class="tabs" role="group" aria-label="Tipo di mappa">
+                        <button id="btnMapSchematic" class="is-active" onclick="switchMapMode('schematic')">Semplificata</button>
+                        <button id="btnMapRoad" onclick="switchMapMode('road')">Stradale</button>
+                    </div>
+                </div>
+
+                <div class="legend">
+                    <span><i class="dot s-available"></i>Aperta</span>
+                    <span><i class="dot s-limited"></i>Limitata / code</span>
+                    <span><i class="dot s-closed"></i>Esaurita</span>
+                    <span><i class="dot s-unverified"></i>Da verificare</span>
+                </div>
+
+                <div class="map-view">
+                    <div id="schematicMapContainer">
+                        <svg id="beneventoSchematicSvg" viewBox="0 0 1000 680" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Schema della città di Benevento con i distributori">
+                            <rect width="1000" height="680" fill="#eaf0f8" />
+                            <!-- Aree verdi -->
+                            <g fill="#cfe8c9">
+                                <ellipse cx="610" cy="300" rx="38" ry="26" />
+                                <ellipse cx="450" cy="610" rx="70" ry="34" />
+                                <ellipse cx="870" cy="120" rx="60" ry="30" />
+                                <ellipse cx="90" cy="560" rx="55" ry="40" />
+                            </g>
+
+                            <!-- Fiumi -->
+                            <path d="M 1000,190 C 880,195 810,190 720,185 C 610,180 540,210 430,245 C 320,280 200,285 0,275" fill="none" stroke="#b3d8f5" stroke-width="26" stroke-linecap="round" />
+                            <path d="M 620,680 C 550,620 445,585 395,500 C 350,420 365,350 235,280" fill="none" stroke="#b3d8f5" stroke-width="20" stroke-linecap="round" />
+                            <text x="565" y="198" fill="#2f6aa0" font-size="11" font-weight="600" letter-spacing="1.5" transform="rotate(-7, 565, 198)">CALORE</text>
+                            <text x="392" y="542" fill="#2f6aa0" font-size="10" font-weight="600" letter-spacing="1.5" transform="rotate(52, 392, 542)">SABATO</text>
+
+                            <!-- Strade -->
+                            <g fill="none" stroke="#ffffff" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M 110,0 C 125,180 135,340 165,680" stroke="#d3dbea" stroke-width="10" />
+                                <path d="M 0,465 L 78,435 L 150,370 L 295,430 L 410,335 L 470,165" stroke-width="12" />
+                                <path d="M 140,370 L 190,575 L 260,680" stroke-width="10" />
+                                <path d="M 295,430 L 520,515 L 650,390" stroke-width="9" />
+                                <path d="M 410,335 L 585,235 L 735,280 L 790,140" stroke-width="11" />
+                                <path d="M 410,335 L 650,390 L 685,325 L 735,280" stroke-width="11" />
+                                <path d="M 685,325 L 880,265 L 990,250" stroke-width="10" />
+                                <path d="M 470,165 L 585,235" stroke-width="9" />
+                                <path d="M 470,165 L 790,140 L 980,95" stroke-width="10" />
+                                <path d="M 650,390 L 890,540 L 990,590" stroke-width="10" />
+                            </g>
+
+                            <!-- Zone -->
+                            <g font-family="Inter, sans-serif" font-weight="600" font-size="12" fill="#55648a" text-anchor="middle">
+                                <text x="468" y="102">Rione Ferrovia</text>
+                                <text x="795" y="92">Capodimonte</text>
+                                <text x="125" y="318">C.da Epitaffio</text>
+                                <text x="78" y="492">SS7 Appia</text>
+                                <text x="285" y="485">Rione Libertà</text>
+                                <text x="555" y="295">Centro storico</text>
+                                <text x="645" y="445">Mellusi / Atlantici</text>
+                                <text x="890" y="218">Pacevecchia</text>
+                                <text x="520" y="582">Santa Colomba</text>
+                                <text x="195" y="638">San Vito / Buonvento</text>
+                                <text x="885" y="605">Piano Cappelle</text>
+                            </g>
+
+                            <g id="svgStationsLayer"></g>
+                        </svg>
+                    </div>
+
+                    <div id="roadMapContainer" class="hidden">
+                        <div id="leafletMap"></div>
+                    </div>
+
+                    <div id="mapQuickBanner" class="hidden"></div>
+                </div>
+
+                <div class="map-foot">
+                    <span>Tocca un distributore per aggiornarlo.</span>
+                    <button onclick="resetMapSelection()" class="link">Deseleziona</button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Dettaglio distributore -->
+    <div id="stationModal" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modalStationName">
+        <div class="sheet">
+            <div class="sheet-head">
+                <div>
+                    <h2 id="modalStationName">Distributore</h2>
+                    <p id="modalStationAddress" class="addr"></p>
+                    <p class="addr zone"><span id="modalBrandBadge">Eni</span> · <span id="modalZoneBadge">Zona</span></p>
+                </div>
+                <button onclick="closeStationModal()" class="x" aria-label="Chiudi"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 4l10 10M14 4L4 14"/></svg></button>
+            </div>
+
+            <div id="modalStatusBox"></div>
+
+            <div class="sheet-body">
+                <div class="current">
+                    <div class="row">
+                        <span class="label" style="margin:0">Stato attuale</span>
+                        <a id="modalGoogleMapsLink" href="#" target="_blank" rel="noopener noreferrer">Apri in Google Maps</a>
+                    </div>
+                    <div id="modalFuelPills"></div>
+                    <div id="modalNoteBox"></div>
+                </div>
+
+                <div>
+                    <span class="label">Il tuo voto <span class="opt" style="font-weight:400;color:var(--muted)">· uno a persona, puoi cambiarlo o toglierlo</span></span>
+                    <div class="choices">
+                        <button type="button" onclick="selectFlagChoice('available')" id="flagChoice-available" class="choice"><b><i class="dot s-available"></i>Aperta<span class="cnt num" id="flagCount-available">0</span></b><small>Carburante disponibile</small></button>
+                        <button type="button" onclick="selectFlagChoice('limited')" id="flagChoice-limited" class="choice"><b><i class="dot s-limited"></i>Limitata<span class="cnt num" id="flagCount-limited">0</span></b><small>Scorte basse o code</small></button>
+                        <button type="button" onclick="selectFlagChoice('closed')" id="flagChoice-closed" class="choice"><b><i class="dot s-closed"></i>Esaurita<span class="cnt num" id="flagCount-closed">0</span></b><small>Chiusa o finito</small></button>
+                    </div>
+                </div>
+
+                <div>
+                    <span class="label">Carburanti disponibili</span>
+                    <div class="checks">
+                        <label class="check"><input type="checkbox" id="chkBenzina" checked>Benzina</label>
+                        <label class="check"><input type="checkbox" id="chkDiesel" checked>Diesel</label>
+                        <label class="check"><input type="checkbox" id="chkGpl">GPL</label>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label for="selectQueue">Coda</label>
+                    <select id="selectQueue" class="select">
+                        <option value="Scorrevole">Nessuna coda</option>
+                        <option value="Moderata">Attesa 5-10 min</option>
+                        <option value="Lunga">Coda lunga (oltre 15 min)</option>
+                        <option value="Presidio TIR / Disagi">Presidio TIR / disagi</option>
+                        <option value="Nessuna">Pompa chiusa</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label for="inputCitizenNote">Nota <span class="opt">(facoltativa)</span></label>
+                    <input type="text" id="inputCitizenNote" maxlength="100" placeholder="Es. solo diesel disponibile" class="input">
+                </div>
+
+                <div class="actions">
+                    <button type="button" id="removeVoteBtn" onclick="removeMyVote(selectedStationId)" class="btn btn-danger hidden">Togli il mio voto</button>
+                    <button type="button" onclick="closeStationModal()" class="btn">Annulla</button>
+                    <button type="button" id="submitFlagBtn" onclick="submitStationFlag()" class="btn btn-primary">Conferma il mio voto</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Nuovo distributore -->
+    <div id="addStationModal" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="addStationTitle">
+        <div class="sheet" style="max-width:460px">
+            <div class="sheet-head">
+                <h3 id="addStationTitle" style="margin:0">Nuovo distributore</h3>
+                <button onclick="closeAddStationModal()" class="x" aria-label="Chiudi"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 4l10 10M14 4L4 14"/></svg></button>
+            </div>
+
+            <form onsubmit="handleAddStationSubmit(event)" class="sheet-body">
+                <div class="grid2">
+                    <div class="field">
+                        <label for="newStationBrand">Marchio</label>
+                        <select id="newStationBrand" required class="select">
+                            <option value="Eni">Eni</option>
+                            <option value="Q8">Q8</option>
+                            <option value="Esso">Esso</option>
+                            <option value="IP">IP</option>
+                            <option value="Tamoil">Tamoil</option>
+                            <option value="Energas">Energas</option>
+                            <option value="Pompa Bianca">Pompa bianca / altro</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="newStationZone">Quartiere</label>
+                        <select id="newStationZone" required class="select">
+                            <option value="Rione Libertà">Rione Libertà</option>
+                            <option value="Centro / Mellusi">Centro / Mellusi</option>
+                            <option value="Rione Ferrovia">Rione Ferrovia</option>
+                            <option value="Pacevecchia">Pacevecchia</option>
+                            <option value="Santa Colomba / Stadio">Santa Colomba / Stadio</option>
+                            <option value="Capodimonte / Pentri">Capodimonte / Pentri</option>
+                            <option value="C.da Epitaffio / Ovest">C.da Epitaffio / Ovest</option>
+                            <option value="Buonvento / San Vito">Buonvento / San Vito</option>
+                            <option value="C.da Piano Cappelle / Est">C.da Piano Cappelle / Est</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label for="newStationName">Nome o via di riferimento</label>
+                    <input type="text" id="newStationName" required maxlength="50" placeholder="Es. Esso - Via Torre della Catena" class="input">
+                </div>
+
+                <div class="field">
+                    <label for="newStationAddress">Indirizzo completo</label>
+                    <input type="text" id="newStationAddress" required maxlength="70" placeholder="Es. Via Torre della Catena 45, Benevento" class="input">
+                </div>
+
+                <div class="field">
+                    <label for="newStationStatus">Stato attuale</label>
+                    <select id="newStationStatus" class="select">
+                        <option value="available">Aperta, carburante disponibile</option>
+                        <option value="limited">Limitata o con code</option>
+                        <option value="closed">Chiusa o esaurita</option>
+                        <option value="unverified">Da verificare</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label for="newStationNote">Nota <span class="opt">(facoltativa)</span></label>
+                    <input type="text" id="newStationNote" maxlength="100" placeholder="Es. self 24h attivo" class="input">
+                </div>
+
+                <div class="actions">
+                    <button type="button" onclick="closeAddStationModal()" class="btn">Annulla</button>
+                    <button type="submit" class="btn btn-primary">Aggiungi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="toastNotification" class="hidden" role="status" aria-live="polite">
+        <div>
+            <div id="toastTitle" class="tt"></div>
+            <div id="toastMessage" class="tm"></div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="wrap">
+            <span>Benzina Benevento Live · monitoraggio civico</span>
+            <span>ID cittadino: <span id="footerUserId" class="num">connessione…</span></span>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>

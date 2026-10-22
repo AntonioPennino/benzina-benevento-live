@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Benzina Benevento Live - Monitoraggio Carburanti</title>
+    <meta name="description" content="Monitoraggio civico in tempo reale dei distributori di carburante a Benevento.">
+    <meta name="theme-color" content="#0F172A">
+    <link rel="canonical" href="https://benzinabn.it/">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Leaflet CSS & JS for Interactive Road Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Firebase Compat SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        bn: {
+                            yellow: '#FACC15',
+                            red: '#DC2626',
+                            dark: '#0F172A'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F8FAFC;
+            color: #0F172A;
+            overflow-x: hidden;
+        }
+
+        /* Pulse animations for status pins */
+        @keyframes pulse-green {
+            0%, 100% { transform: scale(1); opacity: 0.9; }
+            50% { transform: scale(1.45); opacity: 0; }
+        }
+        @keyframes pulse-amber {
+            0%, 100% { transform: scale(1); opacity: 0.9; }
+            50% { transform: scale(1.45); opacity: 0; }
+        }
+        @keyframes pulse-red {
+            0%, 100% { transform: scale(1); opacity: 0.9; }
+            50% { transform: scale(1.45); opacity: 0; }
+        }
+
+        .pin-pulse-available {
+            animation: pulse-green 2.2s infinite ease-out;
+            transform-origin: center;
+            transform-box: fill-box;
+        }
+        .pin-pulse-limited {
+            animation: pulse-amber 2.2s infinite ease-out;
+            transform-origin: center;
+            transform-box: fill-box;
+        }
+        .pin-pulse-closed {
+            animation: pulse-red 2.5s infinite ease-out;
+            transform-origin: center;
+            transform-box: fill-box;
+        }
+
+        /* SVG Map Styling */
+        .svg-pin-group {
+            cursor: pointer;
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transform-origin: center;
+            transform-box: fill-box;
+        }
+        .svg-pin-group:hover {
+            transform: scale(1.14) translateY(-3px);
+        }
+        .svg-pin-selected {
+            transform: scale(1.18) translateY(-4px);
+            filter: drop-shadow(0px 6px 12px rgba(15, 23, 42, 0.35));
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #F1F5F9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #CBD5E1;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94A3B8;
+        }
+
+        /* Leaflet Custom Marker Styling */
+        .custom-leaflet-pin {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 9999px;
+            border: 3px solid #ffffff;
+            box-shadow: 0 6px 16px rgba(15, 23, 42, 0.28);
+            color: #ffffff;
+            font-weight: 700;
+            transition: transform 0.2s ease;
+        }
+        .custom-leaflet-pin:hover {
+            transform: scale(1.15);
+            z-index: 1000 !important;
+        }
+        .leaflet-container {
+            font-family: 'Inter', sans-serif;
+            z-index: 10;
+        }
+
+        /* Mobile: una vista alla volta (Mappa oppure Elenco); i filtri restano sopra entrambe */
+        @media (max-width: 1023px) {
+            body[data-view="map"] #stationsListContainer { display: none; }
+            body[data-view="list"] #mapSection { display: none; }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-50 text-slate-900">
+
+    <!-- TOP EMERGENCY / CIVIC BANNER -->
+    <div class="bg-slate-900 text-white border-b-2 border-amber-400 px-3 py-2 text-xs sm:text-sm">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-gradient-to-r from-amber-400 to-red-600 text-slate-950 uppercase tracking-wider">
+                    <i class="fa-solid fa-triangle-exclamation mr-1"></i> Emergenza Sciopero TIR
+                </span>
+                <span class="font-medium text-slate-200">
+                    Monitoraggio civico collaborativo dei distributori a <strong>Benevento</strong>.
+                </span>
+            </div>
+            <div class="flex items-center gap-3 ml-auto text-xs text-slate-300">
+            <span id="connectionBadge" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-800 border border-slate-700">
+                    <span id="connectionDot" class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                    <span id="connectionText">Inizializzazione...</span>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- HEADER & REAL-TIME COUNTER DASHBOARD -->
+    <header class="bg-white border-b border-slate-200 lg:sticky lg:top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-3 sm:px-6 py-3">
+            <div class="flex flex-col gap-3">
+                
+                <!-- Brand Title -->
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-11 h-11 rounded-2xl bg-slate-900 flex items-center justify-center text-amber-400 shadow-md border-2 border-red-600 shrink-0">
+                            <i class="fa-solid fa-gas-pump text-xl"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h1 class="text-lg sm:text-xl font-extrabold tracking-tight text-slate-900">
+                                    Benzina Benevento <span class="text-red-600">Live</span>
+                                </h1>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-amber-100 text-amber-900 border border-amber-300">
+                                    Dati Reali Cittadini + Stampa
+                                </span>
+                            </div>
+                            <p class="hidden sm:block text-xs text-slate-500">
+                                Le pompe non ancora verificate sono in <strong>grigio</strong>: clicca su un impianto per votarne lo stato in tempo reale
+                            </p>
+                        </div>
+                    </div>
+
+                    <button onclick="openAddStationModal()" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold shadow-sm transition shrink-0">
+                        <i class="fa-solid fa-plus text-amber-400"></i>
+                        <span class="sm:hidden">Nuovo</span><span class="hidden sm:inline">Segnala nuovo distributore</span>
+                    </button>
+                </div>
+
+                <!-- Live Counters Strip -->
+                <div class="hidden sm:grid grid-cols-2 sm:grid-cols-5 gap-2">
+                    <button onclick="setFilterStatus('all')" id="statBtn-all" class="min-w-0 gap-2 col-span-2 sm:col-span-1 flex items-center justify-between px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 transition text-left">
+                        <div class="flex items-center gap-1.5">
+                            <i class="fa-solid fa-layer-group text-slate-600 text-xs"></i>
+                            <span class="text-[11px] sm:text-xs font-semibold text-slate-700">Tutti</span>
+                        </div>
+                        <span id="count-all" class="shrink-0 text-base sm:text-lg font-extrabold font-mono text-slate-900 ml-2">14</span>
+                    </button>
+
+                    <button onclick="setFilterStatus('available')" id="statBtn-available" class="min-w-0 gap-2 flex items-center justify-between px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 transition text-left">
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0"></span>
+                            <span class="text-[11px] sm:text-xs font-bold text-emerald-900">Disponibili</span>
+                        </div>
+                        <span id="count-available" class="shrink-0 text-base sm:text-lg font-extrabold font-mono text-emerald-700 ml-2">0</span>
+                    </button>
+
+                    <button onclick="setFilterStatus('limited')" id="statBtn-limited" class="min-w-0 gap-2 flex items-center justify-between px-3 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-300 transition text-left">
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0"></span>
+                            <span class="text-[11px] sm:text-xs font-bold text-amber-900">Limitati/Code</span>
+                        </div>
+                        <span id="count-limited" class="shrink-0 text-base sm:text-lg font-extrabold font-mono text-amber-700 ml-2">1</span>
+                    </button>
+
+                    <button onclick="setFilterStatus('closed')" id="statBtn-closed" class="min-w-0 gap-2 flex items-center justify-between px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-300 transition text-left">
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-rose-600 shrink-0"></span>
+                            <span class="text-[11px] sm:text-xs font-bold text-rose-900">Esauriti</span>
+                        </div>
+                        <span id="count-closed" class="shrink-0 text-base sm:text-lg font-extrabold font-mono text-rose-700 ml-2">0</span>
+                    </button>
+
+                    <button onclick="setFilterStatus('unverified')" id="statBtn-unverified" class="min-w-0 gap-2 flex items-center justify-between px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 transition text-left">
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-2.5 h-2.5 rounded-full bg-slate-500 shrink-0"></span>
+                            <span class="text-[11px] sm:text-xs font-bold text-slate-700">Da verificare</span>
+                        </div>
+                        <span id="count-unverified" class="shrink-0 text-base sm:text-lg font-extrabold font-mono text-slate-700 ml-2">13</span>
+                    </button>
+                </div>
+
+                <!-- Desktop Add Station Button -->
+                <div class="hidden 2xl:flex items-center gap-2 shrink-0">
+                    <button onclick="openAddStationModal()" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold shadow-sm transition active:scale-95">
+                        <i class="fa-solid fa-plus-circle text-amber-400 text-sm"></i>
+                        <span>Segnala nuovo distributore</span>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </header>
+
+    <!-- VERIFIED LOCAL PRESS NEWS PANEL -->
+    <section class="max-w-7xl w-full mx-auto px-3 sm:px-6 pt-4">
+        <div class="bg-gradient-to-r from-amber-50 via-white to-red-50 rounded-2xl border border-amber-300 shadow-xs p-3.5 sm:p-4">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div class="space-y-1.5">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-extrabold uppercase bg-red-600 text-white">
+                            <i class="fa-solid fa-newspaper"></i> Fonti Stampa Verificate
+                        </span>
+                        <span class="text-xs font-bold text-slate-800">
+                            Aggiornamento Stampa Locale
+                        </span>
+                    </div>
+                    <div id="pressNewsLive" class="pt-0.5">
+                        <div class="flex items-center gap-2 text-[11px] font-bold text-slate-600 mb-1">
+                            <span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-red-600"></span></span>
+                            <span>Ultime notizie dalla stampa locale</span>
+                            <span id="pressNewsUpdated" class="font-semibold text-slate-500"></span>
+                        </div>
+                        <ul id="pressNewsList" class="text-xs text-slate-700 space-y-1"><li class="text-slate-500 italic">Caricamento notizie in corso...</li></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- MOBILE: SCELTA VISTA MAPPA / ELENCO -->
+    <nav class="lg:hidden sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200 px-3 py-2" aria-label="Vista">
+        <div class="max-w-7xl mx-auto grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1 border border-slate-200" role="tablist">
+            <button id="tabViewMap" role="tab" aria-selected="true" onclick="setView('map')" class="px-3 py-2.5 rounded-lg text-sm font-extrabold transition bg-white text-slate-900 shadow-sm flex items-center justify-center gap-2"><i class="fa-solid fa-map-location-dot text-slate-700"></i>Mappa</button>
+            <button id="tabViewList" role="tab" aria-selected="false" onclick="setView('list')" class="px-3 py-2.5 rounded-lg text-sm font-bold transition text-slate-500 flex items-center justify-center gap-2"><i class="fa-solid fa-list"></i>Elenco</button>
+        </div>
+    </nav>
+
+    <!-- MAIN CONTENT LAYOUT -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 py-4 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+
+        <!-- LEFT / TOP COLUMN: INTERACTIVE MAP -->
+        <section id="mapSection" class="order-3 lg:order-none lg:col-span-7 flex flex-col bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            
+            <div class="p-3 sm:px-4 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                        <i class="fa-solid fa-map-location-dot text-slate-700"></i>
+                        Mappa Distributori Benevento
+                    </span>
+                    <span id="lastGlobalSync" class="text-[11px] text-slate-500 hidden sm:inline">
+                        • Aggiornamento condiviso in tempo reale
+                    </span>
+                </div>
+
+                <div class="inline-flex rounded-xl bg-slate-200/80 p-1 border border-slate-300/80">
+                    <button id="btnMapSchematic" onclick="switchMapMode('schematic')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-white text-slate-900 shadow-sm">
+                        <i class="fa-solid fa-diagram-project text-amber-600"></i>
+                        <span>Mappa Semplificata</span>
+                    </button>
+                    <button id="btnMapRoad" onclick="switchMapMode('road')" class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-slate-600 hover:text-slate-900">
+                        <i class="fa-solid fa-road text-blue-600"></i>
+                        <span>Mappa Stradale</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="px-3 sm:px-4 py-2 bg-white border-b border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div class="flex flex-wrap items-center gap-3">
+                    <span class="inline-flex items-center gap-1.5 font-semibold text-emerald-800">
+                        <span class="w-3 h-3 rounded-full bg-emerald-500 inline-block ring-2 ring-emerald-200"></span>
+                        🟢 Aperta
+                    </span>
+                    <span class="inline-flex items-center gap-1.5 font-semibold text-amber-800">
+                        <span class="w-3 h-3 rounded-full bg-amber-500 inline-block ring-2 ring-amber-200"></span>
+                        🟡 Limitata / Code
+                    </span>
+                    <span class="inline-flex items-center gap-1.5 font-semibold text-rose-800">
+                        <span class="w-3 h-3 rounded-full bg-rose-600 inline-block ring-2 ring-rose-200"></span>
+                        🔴 Esaurita / Chiusa
+                    </span>
+                    <span class="inline-flex items-center gap-1.5 font-semibold text-slate-600">
+                        <span class="w-3 h-3 rounded-full bg-slate-500 inline-block ring-2 ring-slate-200"></span>
+                        ⚪ In attesa di verifica
+                    </span>
+                </div>
+                <span class="text-[11px] text-slate-400 font-medium">
+                    <i class="fa-solid fa-hand-pointer mr-1"></i>Tocca una pompa per votarla · zoom con pizzico o rotella
+                </span>
+            </div>
+
+            <!-- MAP VIEWPORT CONTAINER -->
+            <div class="relative w-full bg-slate-100 select-none overflow-hidden">
+                
+                <!-- 1. SCHEMATIC VECTOR MAP -->
+                <div id="schematicMapContainer" class="w-full h-full relative">
+                    <svg id="beneventoSchematicSvg" viewBox="0 0 1000 680" class="w-full h-auto block bg-[#F1F5F9]" preserveAspectRatio="xMidYMid meet">
+                        <defs>
+                            <pattern id="cityGrid" width="50" height="50" patternUnits="userSpaceOnUse">
+                                <path d="M 50 0 L 0 0 0 50" fill="none" stroke="#E2E8F0" stroke-width="1"/>
+                            </pattern>
+                            <filter id="cardShadow" x="-15%" y="-15%" width="130%" height="130%">
+                                <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#0F172A" flood-opacity="0.18"/>
+                            </filter>
+                            <filter id="pinShadow" x="-25%" y="-25%" width="150%" height="150%">
+                                <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#0F172A" flood-opacity="0.32"/>
+                            </filter>
+                        </defs>
+
+                        <rect width="1000" height="680" fill="url(#cityGrid)" />
+
+                        <!-- Urban Zone Soft Highlights -->
+                        <ellipse cx="320" cy="400" rx="135" ry="95" fill="#E2E8F0" opacity="0.55" />
+                        <ellipse cx="640" cy="320" rx="150" ry="110" fill="#E2E8F0" opacity="0.6" />
+                        <ellipse cx="470" cy="155" rx="110" ry="60" fill="#E2E8F0" opacity="0.5" />
+                        <ellipse cx="835" cy="220" rx="115" ry="85" fill="#E2E8F0" opacity="0.5" />
+                        <ellipse cx="520" cy="525" rx="105" ry="65" fill="#E2E8F0" opacity="0.45" />
+
+                        <!-- RIVERS -->
+                        <path d="M 1000,190 C 880,195 810,190 720,185 C 610,180 540,210 430,245 C 320,280 200,285 0,275" fill="none" stroke="#BAE6FD" stroke-width="32" stroke-linecap="round" />
+                        <path d="M 1000,190 C 880,195 810,190 720,185 C 610,180 540,210 430,245 C 320,280 200,285 0,275" fill="none" stroke="#38BDF8" stroke-width="18" stroke-linecap="round" opacity="0.65" />
+
+                        <path d="M 620,680 C 550,620 445,585 395,500 C 350,420 365,350 235,280" fill="none" stroke="#BAE6FD" stroke-width="24" stroke-linecap="round" />
+                        <path d="M 620,680 C 550,620 445,585 395,500 C 350,420 365,350 235,280" fill="none" stroke="#38BDF8" stroke-width="13" stroke-linecap="round" opacity="0.65" />
+
+                        <text x="565" y="198" fill="#0369A1" font-size="11" font-weight="800" letter-spacing="1.5" transform="rotate(-7, 565, 198)">FIUME CALORE</text>
+                        <text x="392" y="542" fill="#0369A1" font-size="10" font-weight="800" letter-spacing="1.5" transform="rotate(52, 392, 542)">FIUME SABATO</text>
+
+                        <!-- MAJOR HIGHWAYS -->
+                        <path d="M 110,0 C 125,180 135,340 165,680" fill="none" stroke="#CBD5E1" stroke-width="14" stroke-dasharray="12,6" />
+                        <path d="M 0,465 L 78,435 L 150,370 L 295,430 L 410,335 L 470,165" fill="none" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" />
+                        <path d="M 0,465 L 78,435 L 150,370 L 295,430 L 410,335 L 470,165" fill="none" stroke="#94A3B8" stroke-width="3" stroke-linecap="round" stroke-dasharray="6,6" />
+                        <path d="M 140,370 L 190,575 L 260,680" fill="none" stroke="#FFFFFF" stroke-width="11" stroke-linecap="round" />
+                        <path d="M 295,430 L 520,515 L 650,390" fill="none" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round" />
+                        <path d="M 410,335 L 585,235 L 735,280 L 790,140" fill="none" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round" />
+                        <path d="M 410,335 L 650,390 L 685,325 L 735,280" fill="none" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round" />
+                        <path d="M 685,325 L 880,265 L 990,250" fill="none" stroke="#FFFFFF" stroke-width="11" stroke-linecap="round" />
+                        <path d="M 470,165 L 585,235" fill="none" stroke="#FFFFFF" stroke-width="10" />
+                        <path d="M 470,165 L 790,140 L 980,95" fill="none" stroke="#FFFFFF" stroke-width="11" stroke-linecap="round" />
+                        <path d="M 650,390 L 890,540 L 990,590" fill="none" stroke="#FFFFFF" stroke-width="11" stroke-linecap="round" />
+
+                        <!-- NEIGHBORHOOD LABELS -->
+                        <g font-family="Inter, sans-serif" font-weight="800" font-size="12" fill="#475569" text-anchor="middle">
+                            <text x="468" y="102" fill="#334155" font-size="13">RIONE FERROVIA</text>
+                            <text x="468" y="117" fill="#64748B" font-size="10" font-weight="600">Stazione Centrale</text>
+                            <text x="795" y="92" fill="#334155" font-size="12">CAPODIMONTE</text>
+                            <text x="795" y="106" fill="#64748B" font-size="10" font-weight="600">Rotonda dei Pentri</text>
+                            <text x="125" y="318" fill="#334155" font-size="12">C.DA EPITAFFIO</text>
+                            <text x="125" y="332" fill="#64748B" font-size="10" font-weight="600">Uscita BN Ovest</text>
+                            <text x="78" y="492" fill="#B45309" font-size="11">SS7 APPIA • TUFARA VALLE</text>
+                            <text x="285" y="485" fill="#1E293B" font-size="13">RIONE LIBERTÀ</text>
+                            <text x="285" y="500" fill="#64748B" font-size="10" font-weight="600">Via Napoli</text>
+                            <text x="555" y="295" fill="#1E293B" font-size="12">CENTRO STORICO</text>
+                            <text x="555" y="309" fill="#64748B" font-size="10" font-weight="600">Arco di Traiano • Duomo</text>
+                            <text x="645" y="445" fill="#1E293B" font-size="13">ZONA MELLUSI / ATLANTICI</text>
+                            <text x="645" y="460" fill="#64748B" font-size="10" font-weight="600">Viale Mellusi • Via Nenni</text>
+                            <text x="890" y="218" fill="#1E293B" font-size="13">PACEVECCHIA</text>
+                            <text x="890" y="232" fill="#64748B" font-size="10" font-weight="600">Via Avellino • Via Bachelet</text>
+                            <text x="520" y="582" fill="#334155" font-size="12">SANTA COLOMBA</text>
+                            <text x="520" y="596" fill="#64748B" font-size="10" font-weight="600">Stadio C. Vigorito</text>
+                            <text x="195" y="638" fill="#334155" font-size="12">C.DA SAN VITO / BUONVENTO</text>
+                            <text x="195" y="652" fill="#64748B" font-size="10" font-weight="600">SS7 Appia</text>
+                            <text x="885" y="605" fill="#334155" font-size="12">PIANO CAPPELLE / VALFORTORE</text>
+                            <text x="885" y="619" fill="#64748B" font-size="10" font-weight="600">Uscita Benevento Est</text>
+                        </g>
+
+                        <g transform="translate(935, 45)">
+                            <circle cx="0" cy="0" r="24" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.5" filter="url(#cardShadow)" />
+                            <path d="M 0,-14 L 5,4 L 0,0 L -5,4 Z" fill="#DC2626" />
+                            <path d="M 0,14 L 5,-4 L 0,0 L -5,-4 Z" fill="#94A3B8" />
+                            <text x="0" y="-16" text-anchor="middle" font-size="8" font-weight="800" fill="#0F172A">N</text>
+                        </g>
+
+                        <g transform="translate(20, 26)">
+                            <rect x="0" y="0" width="235" height="36" rx="10" fill="#0F172A" opacity="0.9" />
+                            <text x="14" y="22" fill="#FACC15" font-size="12" font-weight="800">SCHEMA CITTÀ DI BENEVENTO</text>
+                        </g>
+
+                        <!-- DYNAMIC LAYER FOR FUEL STATION PINS -->
+                        <g id="svgStationsLayer"></g>
+                    </svg>
+                </div>
+
+                <!-- 2. INTERACTIVE ROAD MAP (LEAFLET) -->
+                <div id="roadMapContainer" class="w-full h-[480px] hidden relative">
+                    <div id="leafletMap" class="w-full h-full"></div>
+                </div>
+
+                <div id="mapQuickBanner" class="hidden absolute bottom-3 left-3 right-3 bg-white/95 backdrop-blur-md border-2 border-slate-900 rounded-2xl p-3 shadow-xl z-20 transition-all">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+
+            <div class="px-4 py-2.5 bg-slate-900 text-slate-200 text-xs flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-bolt text-amber-400"></i>
+                    <span>Passi davanti a un distributore? <strong>Clicca sulla pompa</strong> e vota lo stato per tutti i cittadini!</span>
+                </div>
+                <button onclick="resetMapSelection()" class="text-amber-400 hover:underline font-semibold text-xs">
+                    Centra mappa
+                </button>
+            </div>
+        </section>
+
+        <!-- RIGHT / BOTTOM COLUMN: FILTERS, SEARCH & LIVE STATION LIST -->
+        <section class="contents lg:flex lg:flex-col lg:col-span-5 lg:gap-3">
+            
+            <div class="order-2 lg:order-none bg-white rounded-2xl border border-slate-200 p-3.5 shadow-sm flex flex-col gap-3">
+                <div class="relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                    <input 
+                        type="text" 
+                        id="searchInput" 
+                        oninput="handleSearchChange(this.value)"
+                        placeholder="Cerca via, marchio o quartiere (es. Via Napoli, Libertà, Q8)..." 
+                        class="w-full pl-9 pr-9 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition"
+                    >
+                    <button id="clearSearchBtn" onclick="clearSearch()" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700">
+                        <i class="fa-solid fa-circle-xmark"></i>
+                    </button>
+                </div>
+
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex flex-wrap items-center gap-1">
+                        <button onclick="setFilterStatus('all')" id="pill-all" class="px-2.5 py-1.5 rounded-lg text-xs font-bold transition bg-slate-900 text-white">Tutti</button>
+                        <button onclick="setFilterStatus('available')" id="pill-available" class="px-2 py-1.5 rounded-lg text-xs font-bold transition bg-slate-100 text-slate-700 hover:bg-emerald-50">🟢 Aperti</button>
+                        <button onclick="setFilterStatus('limited')" id="pill-limited" class="px-2 py-1.5 rounded-lg text-xs font-bold transition bg-slate-100 text-slate-700 hover:bg-amber-50">🟡 Limitati</button>
+                        <button onclick="setFilterStatus('closed')" id="pill-closed" class="px-2 py-1.5 rounded-lg text-xs font-bold transition bg-slate-100 text-slate-700 hover:bg-rose-50">🔴 Esauriti</button>
+                        <button onclick="setFilterStatus('unverified')" id="pill-unverified" class="px-2 py-1.5 rounded-lg text-xs font-bold transition bg-slate-100 text-slate-700 hover:bg-slate-200">⚪ Da verificare</button>
+                    </div>
+
+                    <div class="flex items-center gap-1.5 ml-auto">
+                        <label for="sortSelect" class="text-[11px] font-semibold text-slate-500">Ordina:</label>
+                        <select id="sortSelect" onchange="handleSortChange(this.value)" class="text-xs font-semibold bg-slate-100 border border-slate-300 rounded-lg px-2 py-1.5 text-slate-800 focus:outline-none">
+                            <option value="recent">Aggiornati di recente</option>
+                            <option value="status">Prima Aperti 🟢</option>
+                            <option value="unverified">Prima Da Verificare ⚪</option>
+                            <option value="name">Nome (A-Z)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div id="stationsListContainer" class="order-4 lg:order-none flex flex-col gap-2.5 lg:max-h-[620px] lg:overflow-y-auto pr-0.5">
+                <!-- Populated dynamically by JS -->
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- STATION DETAIL MODAL -->
+    <div id="stationModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden items-center justify-center p-3 sm:p-4 overflow-y-auto">
+        <div class="bg-white w-full max-w-lg rounded-3xl border border-slate-200 shadow-2xl overflow-hidden my-auto">
+            <div class="bg-slate-900 text-white px-5 py-4 flex items-start justify-between gap-3">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span id="modalBrandBadge" class="px-2 py-0.5 rounded-md text-[11px] font-extrabold uppercase bg-amber-400 text-slate-950">ENI</span>
+                        <span id="modalZoneBadge" class="text-xs text-slate-300 font-medium">Rione Libertà</span>
+                    </div>
+                    <h2 id="modalStationName" class="text-lg sm:text-xl font-extrabold mt-1">Eni - Via Napoli</h2>
+                    <p id="modalStationAddress" class="text-xs text-slate-300 flex items-center gap-1.5 mt-0.5">
+                        <i class="fa-solid fa-location-dot text-amber-400"></i>
+                        <span>Via Napoli 168</span>
+                    </p>
+                </div>
+                <button onclick="closeStationModal()" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark text-base"></i>
+                </button>
+            </div>
+
+            <div id="modalStatusBox" class="px-5 py-3.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2"></div>
+
+            <div class="p-5 space-y-4">
+                <div class="bg-slate-50 rounded-2xl p-3.5 border border-slate-200 space-y-2.5">
+                    <div class="flex items-center justify-between text-xs">
+                        <span class="font-bold text-slate-600 uppercase tracking-wider">Dettagli Ultima Segnalazione</span>
+                        <a id="modalGoogleMapsLink" href="#" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 font-bold text-blue-600 hover:text-blue-800">
+                            <i class="fa-solid fa-diamond-turn-right"></i> Apri in Google Maps
+                        </a>
+                    </div>
+                    <div id="modalFuelPills" class="flex flex-wrap gap-1.5"></div>
+                    <div id="modalNoteBox" class="text-xs text-slate-700 bg-white px-3 py-2 rounded-xl border border-slate-200 italic"></div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-extrabold uppercase tracking-wider text-slate-700 mb-2">
+                        <i class="fa-solid fa-flag mr-1 text-red-600"></i> Il tuo voto <span class="normal-case tracking-normal font-medium text-slate-500">(uno a persona: puoi cambiarlo o toglierlo)</span>
+                    </label>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                        <button type="button" onclick="selectFlagChoice('available')" id="flagChoice-available" class="flex sm:flex-col items-center justify-center gap-2 p-3 rounded-2xl border-2 transition text-left sm:text-center">
+                            <span class="w-9 h-9 rounded-full bg-emerald-500 text-white flex items-center justify-center text-base shadow-sm shrink-0"><i class="fa-solid fa-check"></i></span>
+                            <div>
+                                <div class="text-xs sm:text-sm font-extrabold text-emerald-950">🟢 È Aperta</div>
+                                <div class="text-[11px] text-emerald-700 font-medium">Carburante OK · <strong id="flagCount-available" class="font-mono">0</strong> voti</div>
+                            </div>
+                        </button>
+
+                        <button type="button" onclick="selectFlagChoice('limited')" id="flagChoice-limited" class="flex sm:flex-col items-center justify-center gap-2 p-3 rounded-2xl border-2 transition text-left sm:text-center">
+                            <span class="w-9 h-9 rounded-full bg-amber-500 text-white flex items-center justify-center text-base shadow-sm shrink-0"><i class="fa-solid fa-triangle-exclamation"></i></span>
+                            <div>
+                                <div class="text-xs sm:text-sm font-extrabold text-amber-950">🟡 Limitata</div>
+                                <div class="text-[11px] text-amber-700 font-medium">Scorte basse / Code · <strong id="flagCount-limited" class="font-mono">0</strong> voti</div>
+                            </div>
+                        </button>
+
+                        <button type="button" onclick="selectFlagChoice('closed')" id="flagChoice-closed" class="flex sm:flex-col items-center justify-center gap-2 p-3 rounded-2xl border-2 transition text-left sm:text-center">
+                            <span class="w-9 h-9 rounded-full bg-rose-600 text-white flex items-center justify-center text-base shadow-sm shrink-0"><i class="fa-solid fa-ban"></i></span>
+                            <div>
+                                <div class="text-xs sm:text-sm font-extrabold text-rose-950">🔴 Esaurita</div>
+                                <div class="text-[11px] text-rose-700 font-medium">Chiusa / Finito · <strong id="flagCount-closed" class="font-mono">0</strong> voti</div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-3">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <span class="text-xs font-bold text-slate-700">Quali carburanti ci sono?</span>
+                        <div class="flex items-center gap-2">
+                            <label class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-slate-300 text-xs font-semibold cursor-pointer select-none">
+                                <input type="checkbox" id="chkBenzina" checked class="accent-emerald-600 rounded">
+                                <span>Benzina</span>
+                            </label>
+                            <label class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-slate-300 text-xs font-semibold cursor-pointer select-none">
+                                <input type="checkbox" id="chkDiesel" checked class="accent-emerald-600 rounded">
+                                <span>Diesel</span>
+                            </label>
+                            <label class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-slate-300 text-xs font-semibold cursor-pointer select-none">
+                                <input type="checkbox" id="chkGpl" class="accent-emerald-600 rounded">
+                                <span>GPL</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-500 mb-1">Fila / Attesa</label>
+                            <select id="selectQueue" class="w-full px-2.5 py-2 rounded-xl bg-white border border-slate-300 text-xs font-semibold text-slate-800">
+                                <option value="Scorrevole">Fila scorrevole</option>
+                                <option value="Moderata">Attesa 5-10 min</option>
+                                <option value="Lunga">Coda lunga (+15m)</option>
+                                <option value="Presidio TIR / Disagi">Presidio TIR / Disagi</option>
+                                <option value="Nessuna">Pompa chiusa</option>
+                            </select>
+                        </div>
+                        <div class="sm:col-span-2">
+                            <label class="block text-[11px] font-bold text-slate-500 mb-1">Nota utile (opzionale)</label>
+                            <input type="text" id="inputCitizenNote" maxlength="100" placeholder="Es. Solo Diesel disponibile..." class="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-1">
+                    <button type="button" id="removeVoteBtn" onclick="removeMyVote(selectedStationId)" class="hidden mr-auto px-4 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition">Togli il mio voto</button>
+                    <button type="button" onclick="closeStationModal()" class="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition">Chiudi</button>
+                    <button type="button" id="submitFlagBtn" onclick="submitStationFlag()" class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-400 text-xs sm:text-sm font-extrabold shadow-lg transition active:scale-95">
+                        <i class="fa-solid fa-paper-plane"></i>
+                        <span>Conferma il mio voto</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD NEW STATION MODAL -->
+    <div id="addStationModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden items-center justify-center p-3 sm:p-4 overflow-y-auto">
+        <div class="bg-white w-full max-w-md rounded-3xl border border-slate-200 shadow-2xl overflow-hidden my-auto">
+            <div class="bg-slate-900 text-white px-5 py-4 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-plus-circle text-amber-400 text-lg"></i>
+                    <h3 class="text-base sm:text-lg font-extrabold">Segnala Nuovo Distributore</h3>
+                </div>
+                <button onclick="closeAddStationModal()" class="w-8 h-8 rounded-full bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form onsubmit="handleAddStationSubmit(event)" class="p-5 space-y-3.5">
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Marchio *</label>
+                        <select id="newStationBrand" required class="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs font-semibold">
+                            <option value="Eni">Eni</option>
+                            <option value="Q8">Q8</option>
+                            <option value="Esso">Esso</option>
+                            <option value="IP">IP</option>
+                            <option value="Tamoil">Tamoil</option>
+                            <option value="Energas">Energas</option>
+                            <option value="Pompa Bianca">Pompa Bianca / Altro</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Quartiere / Zona *</label>
+                        <select id="newStationZone" required class="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs font-semibold">
+                            <option value="Rione Libertà">Rione Libertà</option>
+                            <option value="Centro / Mellusi">Centro / Mellusi</option>
+                            <option value="Rione Ferrovia">Rione Ferrovia</option>
+                            <option value="Pacevecchia">Pacevecchia</option>
+                            <option value="Santa Colomba / Stadio">Santa Colomba / Stadio</option>
+                            <option value="Capodimonte / Pentri">Capodimonte / Pentri</option>
+                            <option value="C.da Epitaffio / Ovest">C.da Epitaffio / Ovest</option>
+                            <option value="Buonvento / San Vito">Buonvento / San Vito</option>
+                            <option value="C.da Piano Cappelle / Est">C.da Piano Cappelle / Est</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Nome / Via di riferimento *</label>
+                    <input type="text" id="newStationName" required maxlength="50" placeholder="Es. Esso - Via Torre della Catena" class="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Indirizzo completo *</label>
+                    <input type="text" id="newStationAddress" required maxlength="70" placeholder="Es. Via Torre della Catena 45, Benevento" class="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Stato attuale carburante *</label>
+                    <select id="newStationStatus" class="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs font-bold">
+                        <option value="available">🟢 Aperta / Carburante Disponibile</option>
+                        <option value="limited">🟡 Disponibilità Limitata / Code</option>
+                        <option value="closed">🔴 Chiusa / Carburante Esaurito</option>
+                        <option value="unverified">⚪ In attesa di verifica</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Nota opzionale</label>
+                    <input type="text" id="newStationNote" maxlength="100" placeholder="Es. Self 24h attivo" class="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs">
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeAddStationModal()" class="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold">Annulla</button>
+                    <button type="submit" class="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-400 text-xs font-extrabold shadow-md">Aggiungi alla Mappa</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="toastNotification" class="fixed bottom-4 right-4 z-50 hidden items-center gap-3 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl border border-slate-700 max-w-sm">
+        <span id="toastIcon" class="w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0 text-xs">
+            <i class="fa-solid fa-check"></i>
+        </span>
+        <div class="text-xs">
+            <div id="toastTitle" class="font-bold text-white">Aggiornamento salvato!</div>
+            <div id="toastMessage" class="text-slate-300">Grazie per il tuo contributo ai cittadini di Benevento.</div>
+        </div>
+    </div>
+
+    <footer class="bg-white border-t border-slate-200 mt-8 py-4 px-4 text-xs text-slate-500">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-amber-400 border border-red-600"></span>
+                <span><strong>Benzina Benevento Live</strong> • Monitoraggio civico trasparente</span>
+            </div>
+            <div class="font-mono text-[11px] text-slate-400">
+                ID Cittadino: <span id="footerUserId" class="text-slate-600 select-all">connessione...</span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>

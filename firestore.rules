@@ -1,0 +1,90 @@
+rules_version = '2';
+
+// Benzina Benevento Live — regole di sicurezza Firestore.
+// Lettura pubblica; scrittura solo per utenti autenticati (anche anonimi), con
+// validazione dei campi e UNA sola segnalazione per utente per distributore
+// (la chiave in "votes" deve coincidere con l'uid di chi scrive). Nessuna cancellazione.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /artifacts/benzina-benevento-live/public/data/stations/{stationId} {
+
+      function signedIn() { return request.auth != null; }
+      function str(v, max) { return v is string && v.size() <= max; }
+      function validStatus(s) { return s in ['available', 'limited', 'closed', 'unverified']; }
+      function validQueue(q) { return q in ['Scorrevole', 'Moderata', 'Lunga', 'Presidio TIR / Disagi', 'Nessuna', 'Da verificare']; }
+      function boolOrNull(v) { return v == null || v is bool; }
+      function validFuels(f) {
+        return f is map
+          && f.keys().hasOnly(['benzina', 'diesel', 'gpl'])
+          && boolOrNull(f.get('benzina', null))
+          && boolOrNull(f.get('diesel', null))
+          && boolOrNull(f.get('gpl', null));
+      }
+
+      // Una segnalazione di un utente
+      function validVote(v) {
+        return v is map
+          && v.keys().hasOnly(['status', 'ts', 'fuels', 'queueLevel', 'note'])
+          && v.keys().hasAll(['status', 'ts', 'fuels', 'queueLevel', 'note'])
+          && validStatus(v.status) && v.status != 'unverified'
+          && v.ts is number
+          && v.ts > request.time.toMillis() - 86400000
+          && v.ts < request.time.toMillis() + 86400000
+          && validFuels(v.fuels)
+          && validQueue(v.queueLevel)
+          && str(v.note, 100);
+      }
+
+      // Stato aggregato del distributore
+      function validState(d) {
+        return validStatus(d.status)
+          && (d.lastUpdated == null || d.lastUpdated is number)
+          && d.confirmations is int && d.confirmations >= 0 && d.confirmations <= 100000
+          && validFuels(d.fuels)
+          && validQueue(d.queueLevel)
+          && str(d.lastNote, 100)
+          && (d.lastReporterId == null || str(d.lastReporterId, 128));
+      }
+
+      // Può cambiare solo la chiave del proprio uid dentro "votes"
+      function votesOk() {
+        let oldVotes = resource.data.get('votes', {});
+        let newVotes = request.resource.data.get('votes', {});
+        return newVotes is map
+          && newVotes.diff(oldVotes).affectedKeys().hasOnly([request.auth.uid])
+          && (!(request.auth.uid in newVotes) || validVote(newVotes[request.auth.uid]))
+          && (newVotes.size() == 0 || request.resource.data.confirmations <= newVotes.size());
+      }
+
+      allow read: if true;
+
+      // Nuovo distributore segnalato da un cittadino
+      allow create: if signedIn()
+        && stationId.matches('bn-custom-[0-9]{10,16}')
+        && request.resource.data.keys().hasOnly(['id', 'name', 'brand', 'address', 'zone', 'lat', 'lng', 'svgX', 'svgY', 'status', 'lastUpdated', 'confirmations', 'fuels', 'queueLevel', 'lastNote', 'seedVersion', 'lastReporterId'])
+        && request.resource.data.keys().hasAll(['id', 'name', 'brand', 'address', 'zone', 'lat', 'lng', 'svgX', 'svgY', 'status', 'lastUpdated', 'confirmations', 'fuels', 'queueLevel', 'lastNote', 'seedVersion', 'lastReporterId'])
+        && request.resource.data.id == stationId
+        && str(request.resource.data.name, 50) && request.resource.data.name.size() > 0
+        && str(request.resource.data.address, 70) && request.resource.data.address.size() > 0
+        && request.resource.data.brand in ['Eni', 'Q8', 'Esso', 'IP', 'Tamoil', 'Energas', 'Pompa Bianca']
+        && request.resource.data.zone in ['Rione Libertà', 'Centro / Mellusi', 'Rione Ferrovia', 'Pacevecchia', 'Santa Colomba / Stadio', 'Capodimonte / Pentri', 'C.da Epitaffio / Ovest', 'Buonvento / San Vito', 'C.da Piano Cappelle / Est']
+        && request.resource.data.lat is number && request.resource.data.lat > 40.9 && request.resource.data.lat < 41.3
+        && request.resource.data.lng is number && request.resource.data.lng > 14.5 && request.resource.data.lng < 15.0
+        && request.resource.data.svgX is number && request.resource.data.svgX >= 0 && request.resource.data.svgX <= 1000
+        && request.resource.data.svgY is number && request.resource.data.svgY >= 0 && request.resource.data.svgY <= 680
+        && request.resource.data.seedVersion is number
+        && validState(request.resource.data)
+        && request.resource.data.lastReporterId == request.auth.uid;
+
+      // Aggiornamento: solo i campi di stato, mai nome/indirizzo/coordinate
+      allow update: if signedIn()
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['status', 'lastUpdated', 'confirmations', 'fuels', 'queueLevel', 'lastNote', 'lastReporterId', 'isPressSource', 'seedVersion', 'votes', 'legacy'])
+        && validState(request.resource.data)
+        && votesOk();
+
+      allow delete: if false;
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "benzina-benevento-live",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "wrangler pages dev",
+    "deploy": "wrangler pages deploy --branch main --commit-dirty=true"
+  },
+  "devDependencies": {
+    "wrangler": "^4.152.0"
+  }
+}
