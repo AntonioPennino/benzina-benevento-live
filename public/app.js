@@ -1,21 +1,32 @@
         const SEED_VERSION = 2;
 
         const INITIAL_BENEVENTO_STATIONS = [
-            { id: "bn-station-14", name: "Eni - SS7 Appia (Tufara Valle)", brand: "Eni", address: "SS7 Appia, loc. Tufara Valle", zone: "Arteria SS7 Appia Sud-Ovest", lat: 41.0915, lng: 14.7185, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
-            { id: "bn-station-1", name: "Eni - Via Napoli", brand: "Eni", address: "Via Napoli 168", zone: "Rione Libertà", lat: 41.1245, lng: 14.7615, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
-            { id: "bn-station-2", name: "Eni - Via Meomartini", brand: "Eni", address: "Via Alfonso Meomartini 60", zone: "Zona Mellusi/Alta", lat: 41.1328, lng: 14.7912, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
-            { id: "bn-station-3", name: "Eni - Via Paolella", brand: "Eni", address: "Via Alfredo Paolella 4", zone: "Santa Colomba / Stadio", lat: 41.1192, lng: 14.7775, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
-            { id: "bn-station-4", name: "Q8 - Via Avellino", brand: "Q8", address: "Via Avellino 6", zone: "Centro / Pacevecchia", lat: 41.1310, lng: 14.7895, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
-            { id: "bn-station-5", name: "Q8easy - Contrada Epitaffio", brand: "Q8", address: "C.da Epitaffio 72", zone: "C.da Epitaffio / Ovest", lat: 41.1285, lng: 14.7480, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
-            { id: "bn-station-6", name: "Energas Q8 - Via Padre Pio", brand: "Energas", address: "Via Padre Pio SP71", zone: "Capodimonte / Rotonda dei Pentri", lat: 41.1415, lng: 14.7960, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
-            { id: "bn-station-7", name: "Tamoil 24h - Piazza Bissolati", brand: "Tamoil", address: "Piazza Bissolati / Via Grimoaldo Re 11", zone: "Rione Ferrovia", lat: 41.1402, lng: 14.7735, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
-            { id: "bn-station-8", name: "Tamoil - Via Bachelet", brand: "Tamoil", address: "Via Vittorio Bachelet", zone: "Pacevecchia", lat: 41.1345, lng: 14.8050, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
-            { id: "bn-station-9", name: "Esso - Via dei Longobardi", brand: "Esso", address: "Via dei Longobardi 10", zone: "Zona Ponticelli / Centro", lat: 41.1365, lng: 14.7830, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
-            { id: "bn-station-10", name: "IP - Via Pietro Nenni", brand: "IP", address: "Via Pietro Nenni 38", zone: "Zona Atlantici / Mellusi", lat: 41.1270, lng: 14.7885, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
-            { id: "bn-station-11", name: "Distributore Di.Si. - Viale Virgilio", brand: "Di.Si.", address: "Viale Virgilio snc", zone: "Rione Libertà / Ponte Vanvitelli", lat: 41.1315, lng: 14.7695, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
-            { id: "bn-station-12", name: "Conad Self 24h - Buonvento", brand: "Conad", address: "SS7 Appia / C.da San Vito", zone: "Buonvento / San Vito", lat: 41.1130, lng: 14.7520, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
-            { id: "bn-station-13", name: "Distributore C.da Piano Cappelle", brand: "Pompa Bianca", address: "Via Valfortore / C.da Piano Cappelle", zone: "C.da Piano Cappelle / Est", lat: 41.1170, lng: 14.8080, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION }
+            { id: "bn-station-14", name: "Eni - SS7 Appia (Tufara Valle)", brand: "Eni", address: "SS7 Appia, loc. Tufara Valle", zone: "Arteria SS7 Appia Sud-Ovest", lat: 41.06710, lng: 14.71256, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
+            { id: "bn-station-1", name: "Eni - Via Napoli", brand: "Eni", address: "Via Napoli 168", zone: "Rione Libertà", lat: 41.12143, lng: 14.76953, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
+            { id: "bn-station-2", name: "Eni - Via Meomartini", brand: "Eni", address: "Via Alfonso Meomartini 60", zone: "Zona Mellusi/Alta", lat: 41.12233, lng: 14.79460, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
+            { id: "bn-station-3", name: "Eni - Via Paolella", brand: "Eni", address: "Via Alfredo Paolella 4", zone: "Santa Colomba / Stadio", lat: 41.12983, lng: 14.79477, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
+            { id: "bn-station-4", name: "Q8 - Via Avellino", brand: "Q8", address: "Via Avellino 6", zone: "Centro / Pacevecchia", lat: 41.12326, lng: 14.78899, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
+            { id: "bn-station-5", name: "Q8easy - Contrada Epitaffio", brand: "Q8", address: "C.da Epitaffio 72", zone: "C.da Epitaffio / Ovest", lat: 41.10604, lng: 14.74586, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
+            { id: "bn-station-6", name: "Energas Q8 - Via Padre Pio", brand: "Energas", address: "Via Padre Pio SP71", zone: "Capodimonte / Rotonda dei Pentri", lat: 41.14642, lng: 14.76837, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
+            { id: "bn-station-7", name: "Tamoil 24h - Piazza Bissolati", brand: "Tamoil", address: "Piazza Bissolati / Via Grimoaldo Re 11", zone: "Rione Ferrovia", lat: 41.13446, lng: 14.77290, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
+            { id: "bn-station-8", name: "Tamoil - Via Bachelet", brand: "Tamoil", address: "Via Vittorio Bachelet", zone: "Pacevecchia", lat: 41.12103, lng: 14.80224, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
+            { id: "bn-station-9", name: "Esso - Via dei Longobardi", brand: "Esso", address: "Via dei Longobardi 10", zone: "Zona Ponticelli / Centro", lat: 41.13888, lng: 14.77939, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
+            { id: "bn-station-10", name: "IP - Via Pietro Nenni", brand: "IP", address: "Via Pietro Nenni 38", zone: "Zona Atlantici / Mellusi", lat: 41.12653, lng: 14.79700, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
+            { id: "bn-station-11", name: "Distributore Di.Si. - Viale Virgilio", brand: "Di.Si.", address: "Viale Virgilio snc", zone: "Rione Libertà / Ponte Vanvitelli", lat: 41.14480, lng: 14.76496, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
+            { id: "bn-station-12", name: "Conad Self 24h - Buonvento", brand: "Conad", address: "SS7 Appia / C.da San Vito", zone: "Buonvento / San Vito", lat: 41.11802, lng: 14.75881, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
+            { id: "bn-station-13", name: "Distributore C.da Piano Cappelle", brand: "Pompa Bianca", address: "Via Valfortore / C.da Piano Cappelle", zone: "C.da Piano Cappelle / Est", lat: 41.10367, lng: 14.82453, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION }
         ];
+
+        // Posizioni verificate (distributori reali su OpenStreetMap, o la via quando il distributore non c'è):
+        // hanno la precedenza sulle coordinate salvate, che per molti distributori erano approssimative.
+        // Per correggere una pompa basta aggiungere qui il suo id.
+        const POSITION_FIXES = {
+            "bn-custom-1792675781566": { lat: 41.15123, lng: 14.77953 }, // Beneco - Via dei Liguri Bebiani
+            "bn-custom-1792607627389": { lat: 41.11268, lng: 14.80072 }, // Sudpetroli - Via Fratelli Rosselli (via)
+            "bn-custom-1792688137608": { lat: 41.14552, lng: 14.76663 }, // Rotonda dei Pentri
+            "bn-custom-1792687945441": { lat: 41.12129, lng: 14.76954 }, // Via Napoli (via)
+            "bn-custom-1792688909975": { lat: 41.31061, lng: 14.87894 }  // Q8 - San Marco dei Cavoti (paese)
+        };
 
         const ZONE_COORDINATES_MAP = {
             "Rione Libertà": { lat: 41.1260, lng: 14.7640 },
@@ -140,10 +151,13 @@
                         if (!/^bn-(station|custom)-\d+$/.test(docSnap.id)) return;
                         const data = docSnap.data();
                         const seedRef = INITIAL_BENEVENTO_STATIONS.find(i => i.id === docSnap.id) || {};
+                        // per i distributori iniziali e per quelli corretti vale la posizione scritta nel codice
+                        const position = POSITION_FIXES[docSnap.id] || (seedRef.id ? { lat: seedRef.lat, lng: seedRef.lng } : {});
                         
                         loadedStations.push(normalizeStation({
                             ...seedRef,
                             ...data,
+                            ...position,
                             id: docSnap.id,
                             status: ['available', 'limited', 'closed', 'unverified'].includes(data.status) ? data.status : 'unverified',
                             fuels: parseFuels(data.fuels)
@@ -266,11 +280,17 @@
 
         function initLeafletMapIfNeeded() {
             if (leafletMap) return;
+            if (!window.L) {
+                document.getElementById('leafletMap').innerHTML = '<div class="h-full flex items-center justify-center p-6 text-center text-xs text-slate-500">Mappa non disponibile: ricarica la pagina. L’elenco dei distributori funziona comunque.</div>';
+                return;
+            }
             leafletMap = L.map('leafletMap', { center: [41.1250, 14.7720], zoom: 12 });
-           L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-           maxZoom: 19,
-           attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-           }).addTo(leafletMap);
+            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            }).addTo(leafletMap);
+            // il riquadro cambia misura (vista Mappa/Elenco, rotazione del telefono): la mappa si adegua
+            if (window.ResizeObserver) new ResizeObserver(() => leafletMap.invalidateSize()).observe(document.getElementById('leafletMap'));
             // toccare la mappa fuori da una pompa chiude la scheda (Leaflet non lo segnala dopo un trascinamento)
             leafletMap.on('click', () => window.clearMapSelection());
             renderLeafletMarkers();
@@ -663,7 +683,12 @@
                         isPressSource: false, seedVersion: SEED_VERSION, votes: next.votes, legacy: next.legacy
                     });
                 });
-            } catch (e) { console.error(e); }
+            } catch (e) {
+                console.error(e);
+                showToast('Voto NON salvato', e.code === 'resource-exhausted'
+                    ? 'Il database ha raggiunto il limite giornaliero. Riprova più tardi.'
+                    : 'Connessione al database non riuscita. Riprova tra poco.');
+            }
         }
 
         async function castVote(stationId, vote) {
@@ -824,13 +849,6 @@
 
         setInterval(() => { renderStationsList(); updateMapQuickBanner(); }, 30000);
 
-        // Rendering immediato all'apertura del file
-        window.onload = function() {
-            initLeafletMapIfNeeded();
-            renderAll();
-            initFirebaseAndSync();
-        };
-
         // Notizie dalla stampa locale (/api/press-news)
         (function() {
             const timeAgo = (ts) => {
@@ -925,3 +943,9 @@
             };
             document.body.dataset.view = 'map';
         })();
+
+        // Avvio: subito (lo script è in fondo alla pagina), senza aspettare font e icone;
+        // un errore della mappa non deve bloccare elenco e voti
+        try { initLeafletMapIfNeeded(); } catch (err) { console.error('Mappa non avviata', err); }
+        renderAll();
+        initFirebaseAndSync();
