@@ -26,7 +26,8 @@ export interface Station {
 }
 
 export const STATUSES = ['available', 'limited', 'closed']
-export const QUEUE_LEVELS = ['Scorrevole', 'Moderata', 'Lunga', 'Presidio TIR / Disagi', 'Nessuna']
+// 'Non indicata': voto rapido senza informazione sulle code (non cancella la coda segnalata da altri)
+export const QUEUE_LEVELS = ['Scorrevole', 'Moderata', 'Lunga', 'Presidio TIR / Disagi', 'Nessuna', 'Non indicata']
 export const BRANDS = ['Eni', 'Q8', 'Esso', 'IP', 'Tamoil', 'Energas', 'Pompa Bianca']
 
 // voti più vecchi di così non vengono più mandati alla pagina

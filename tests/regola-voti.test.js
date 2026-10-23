@@ -29,4 +29,17 @@ check('dopo reset, i voti nuovi contano da capo', mk([...rep(10, 'available', 0)
 check('dopo reset, 1 esaurita e 1 aperta -> esaurita', mk([...rep(10, 'available', 0), ['closed', 60], ['available', 62]]), 'closed');
 check('stesso stato dopo pausa lunga non azzera', mk([...rep(3, 'closed', 0), ['available', 5], ['closed', 200]]), 'closed');
 check('nessun voto', {}, 'unverified');
+
+// code: vale l'ultima segnalata davvero, un voto rapido senza coda non la cancella
+const qv = (status, min, queueLevel) => ['u' + (n++), { status, ts: T0 + min * M, fuels: {}, queueLevel, note: '' }]
+const queueCase = (name, list, exp) => {
+  const r = deriveFromVotes(Object.fromEntries(list), null)
+  const ok = r.queueLevel === exp
+  if (!ok) fail++
+  console.log(`${ok ? 'OK  ' : 'FAIL'} ${name}: ${r.queueLevel} (attesa ${exp})`)
+}
+queueCase('coda 5-10 min poi voto rapido senza coda', [qv('available', 0, 'Scorrevole'), qv('available', 5, 'Moderata'), qv('available', 10, 'Non indicata')], 'Moderata')
+queueCase('coda segnalata anche da chi vota limitata', [qv('available', 0, 'Non indicata'), qv('limited', 5, 'Lunga'), qv('available', 10, 'Non indicata')], 'Lunga')
+queueCase('nessuna coda indicata', [qv('available', 0, 'Non indicata')], 'Non indicata')
+queueCase('pompa esaurita: niente coda', [qv('closed', 0, 'Nessuna'), qv('closed', 5, 'Nessuna')], 'Nessuna')
 process.exit(fail ? 1 : 0);

@@ -36,7 +36,8 @@
         let currentSearchQuery = '';
         let currentSortBy = 'recent';
         let selectedStationId = null;
-        let modalStationId = null;   // pompa mostrata nella scheda grande (indipendente dalla selezione sulla mappa)
+        let modalStationId = null;
+        let bannerQueue = null;   // coda scelta nella scheda piccola: { id, q } (si usa col prossimo voto su quella pompa)   // pompa mostrata nella scheda grande (indipendente dalla selezione sulla mappa)
         let modalFlagStatusChoice = 'available';
 
         let leafletMap = null;
@@ -252,6 +253,7 @@
             if (!st) return;
             if (leafletMap) { leafletMap.setView([st.lat, st.lng], 15); mapFramed = true; }
             window.handlePinClick(id);
+            window.openStationModal(id);
         }
 
         // Condividi la pompa della scheda aperta: menu di condivisione del telefono (WhatsApp, Telegram…),
@@ -322,6 +324,24 @@
             });
         }
 
+        function queueBadge(st, withTime) {
+            if (st.status === 'closed' || !QUEUE_LABELS[st.queueLevel]) return '';
+            const busy = st.queueLevel !== 'Scorrevole';
+            const when = withTime && st.queueTs ? ` · ${esc(formatRelativeTime(st.queueTs).toLowerCase())}` : '';
+            return `<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold border ${busy ? 'bg-amber-50 text-amber-900 border-amber-200' : 'bg-emerald-50 text-emerald-800 border-emerald-200'}"><i class="fa-solid fa-car-side mr-1 ${busy ? 'text-amber-600' : 'text-emerald-600'}"></i>${esc(QUEUE_LABELS[st.queueLevel])}${when}</span>`;
+        }
+
+        // Pulsanti per segnalare la coda nella scheda piccola
+        function queueButtons(st) {
+            const id = esc(st.id);
+            const mine = myVoteOf(st);
+            const chosen = (bannerQueue && bannerQueue.id === st.id) ? bannerQueue.q : (mine && mine.status !== 'closed' ? mine.queueLevel : null);
+            return `<div class="flex items-center gap-1 flex-wrap" role="group" aria-label="Segnala la coda">
+                <span class="text-[11px] font-bold text-slate-600 mr-0.5"><i class="fa-solid fa-car-side"></i> Coda:</span>
+                ${QUEUE_CHOICES.map(q => `<button onclick="window.setBannerQueue('${id}', '${q}')" aria-pressed="${chosen === q}" class="px-2 py-1 rounded-lg text-[11px] font-bold border transition active:scale-95 ${chosen === q ? 'bg-slate-900 text-amber-400 border-slate-900' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'}">${QUEUE_LABELS[q]}</button>`).join('')}
+            </div>`;
+        }
+
         // Pulsanti di voto con contatore (voti recenti in grande, voti precedenti in ombra)
         function flagButtons(st, compact) {
             const id = esc(st.id);
@@ -372,11 +392,15 @@
                                 <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold border ${cfg.badgeClass}">${cfg.emoji} ${cfg.label}</span>
                             </div>
                             <p class="text-[11px] text-slate-600">${esc(st.address)} (${esc(st.zone)}) • ${timeInfo}</p>
+                            ${queueBadge(st, true) ? `<div class="mt-1">${queueBadge(st, true)}</div>` : ''}
                         </div>
                     </div>
-                    <div class="flex items-center gap-1.5 shrink-0 flex-wrap">
+                    <div class="flex flex-col gap-1.5 shrink-0">
                         ${flagButtons(st, true)}
-                        <button onclick="window.openStationModal('${esc(st.id)}')" class="px-2.5 py-1.5 rounded-lg bg-slate-900 text-amber-400 text-[11px] font-bold">Dettagli</button>
+                        <div class="flex items-center justify-between gap-1.5 flex-wrap">
+                            ${queueButtons(st)}
+                            <button onclick="window.openStationModal('${esc(st.id)}')" class="px-2.5 py-1.5 rounded-lg bg-slate-900 text-amber-400 text-[11px] font-bold">Dettagli <i class="fa-solid fa-chevron-right text-[9px]"></i></button>
+                        </div>
                     </div>
                 </div>`;
         }
@@ -427,7 +451,7 @@
                         <span class="px-2 py-0.5 rounded-md font-bold ${fuels.benzina ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-slate-100 text-slate-400 line-through'}">Benzina ${fuels.benzina ? '✓' : '✗'}</span>
                         <span class="px-2 py-0.5 rounded-md font-bold ${fuels.diesel ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-slate-100 text-slate-400 line-through'}">Diesel ${fuels.diesel ? '✓' : '✗'}</span>
                         ${fuels.gpl ? `<span class="px-2 py-0.5 rounded-md font-bold bg-blue-50 text-blue-800 border-blue-200">GPL ✓</span>` : ''}
-                        ${st.queueLevel && effectiveStatus !== 'closed' ? `<span class="px-2 py-0.5 rounded-md font-semibold bg-amber-50 text-amber-900 border-amber-200"><i class="fa-solid fa-car-side mr-1 text-amber-600"></i>${esc(st.queueLevel)}</span>` : ''}
+                        ${queueBadge(st, false)}
                        </div>`;
 
                 html += `
@@ -463,10 +487,11 @@
         }
 
 
+        // clic su una pompa della mappa: si apre la scheda piccola (voto rapido e coda); "Dettagli" apre quella grande
         window.handlePinClick = function(stationId) {
+            if (selectedStationId !== stationId) bannerQueue = null;
             selectedStationId = stationId;
             renderAll();
-            window.openStationModal(stationId);
         };
 
         window.resetMapSelection = function() {
@@ -481,6 +506,7 @@
         window.clearMapSelection = function() {
             if (!selectedStationId) return;
             selectedStationId = null;
+            bannerQueue = null;
             renderAll();
         };
 
@@ -549,7 +575,7 @@
                 : 'Nessuna segnalazione ancora';
             document.getElementById('modalStatusBox').className = `px-5 py-3.5 border-b flex flex-wrap items-center justify-between gap-2 ${cfg.badgeClass}`;
             document.getElementById('modalStatusBox').innerHTML = `
-                <div class="flex items-center gap-2"><span class="text-lg">${cfg.emoji}</span><div><div class="text-xs font-extrabold uppercase">${cfg.label}</div><div class="text-[11px] font-medium opacity-80">Voti recenti: 🟢 ${cnt.available} · 🟡 ${cnt.limited} · 🔴 ${cnt.closed}${mine ? ` · il tuo voto: ${getStatusConfig(mine.status).shortLabel}` : ''}</div><div class="text-[11px] font-semibold"><i class="fa-regular fa-clock mr-1"></i>${lastInfo}</div></div></div>
+                <div class="flex items-center gap-2"><span class="text-lg">${cfg.emoji}</span><div><div class="text-xs font-extrabold uppercase">${cfg.label}</div>${queueBadge(st, true) ? `<div class="my-1">${queueBadge(st, true)}</div>` : ''}<div class="text-[11px] font-medium opacity-80">Voti recenti: 🟢 ${cnt.available} · 🟡 ${cnt.limited} · 🔴 ${cnt.closed}${mine ? ` · il tuo voto: ${getStatusConfig(mine.status).shortLabel}` : ''}</div><div class="text-[11px] font-semibold"><i class="fa-regular fa-clock mr-1"></i>${lastInfo}</div></div></div>
             `;
             ['available', 'limited', 'closed'].forEach(k => {
                 const el = document.getElementById(`flagCount-${k}`);
@@ -565,7 +591,7 @@
             document.getElementById('chkBenzina').checked = st.fuels?.benzina !== false;
             document.getElementById('chkDiesel').checked = st.fuels?.diesel !== false;
             document.getElementById('chkGpl').checked = !!st.fuels?.gpl;
-            document.getElementById('selectQueue').value = (st.queueLevel && st.queueLevel !== 'Da verificare') ? st.queueLevel : 'Scorrevole';
+            document.getElementById('selectQueue').value = 'Non indicata';
             document.getElementById('inputCitizenNote').value = '';
 
             window.selectFlagChoice(mine ? mine.status : (st.status === 'unverified' ? 'available' : st.status));
@@ -573,7 +599,7 @@
                 document.getElementById('chkBenzina').checked = !!mine.fuels?.benzina;
                 document.getElementById('chkDiesel').checked = !!mine.fuels?.diesel;
                 document.getElementById('chkGpl').checked = !!mine.fuels?.gpl;
-                document.getElementById('selectQueue').value = mine.queueLevel || 'Scorrevole';
+                document.getElementById('selectQueue').value = mine.queueLevel || 'Non indicata';
             }
             document.getElementById('removeVoteBtn').classList.toggle('hidden', !mine);
             const submitLabel = document.querySelector('#submitFlagBtn span');
@@ -596,9 +622,9 @@
             });
             if (status === 'closed') {
                 document.getElementById('chkBenzina').checked = false; document.getElementById('chkDiesel').checked = false; document.getElementById('selectQueue').value = 'Nessuna';
-            } else if (status === 'available') {
-                document.getElementById('chkBenzina').checked = true; document.getElementById('chkDiesel').checked = true;
-                if (document.getElementById('selectQueue').value === 'Nessuna') document.getElementById('selectQueue').value = 'Scorrevole';
+            } else {
+                if (status === 'available') { document.getElementById('chkBenzina').checked = true; document.getElementById('chkDiesel').checked = true; }
+                if (document.getElementById('selectQueue').value === 'Nessuna') document.getElementById('selectQueue').value = 'Non indicata';
             }
         };
 
@@ -643,6 +669,17 @@
             return { active, old };
         }
 
+        // Code: etichette mostrate per i valori salvati. 'Nessuna' (pompa chiusa) e 'Non indicata' non si mostrano.
+        const QUEUE_LABELS = { 'Scorrevole': 'Nessuna coda', 'Moderata': 'Attesa 5-10 min', 'Lunga': 'Coda lunga (+15 min)', 'Presidio TIR / Disagi': 'Presidio TIR / Disagi' };
+        const QUEUE_CHOICES = ['Scorrevole', 'Moderata', 'Lunga'];
+
+        // coda in vigore: l'ultima segnalata davvero tra i voti in corso di pompe aperte o limitate
+        // (un voto rapido "Aperta" senza coda non cancella la coda segnalata poco prima da un altro)
+        function currentQueue(active) {
+            const q = active.filter(v => v.status !== 'closed' && QUEUE_LABELS[v.queueLevel]).sort((x, y) => y.ts - x.ts)[0];
+            return q ? { queueLevel: q.queueLevel, queueTs: q.ts } : { queueLevel: 'Non indicata', queueTs: null };
+        }
+
         function deriveFromVotes(votes, legacy) {
             const { active } = splitVotes(votes);
             if (!active.length) {
@@ -651,7 +688,8 @@
             }
             const { status: winner, count } = winnerOf(active);
             const latest = active.filter(v => v.status === winner).sort((x, y) => y.ts - x.ts)[0];
-            return { status: winner, lastUpdated: latest.ts, confirmations: count, fuels: latest.fuels, queueLevel: latest.queueLevel, lastNote: latest.note, lastReporterId: latest.uid };
+            const queue = winner === 'closed' ? { queueLevel: 'Nessuna', queueTs: null } : currentQueue(active);
+            return { status: winner, lastUpdated: latest.ts, confirmations: count, fuels: latest.fuels, ...queue, lastNote: latest.note, lastReporterId: latest.uid };
         }
 
         // ultimo voto arrivato (di qualunque categoria), non lo stato in vigore
@@ -747,11 +785,28 @@
             const vote = {
                 status: newStatus, ts: Date.now(),
                 fuels: newStatus === 'closed' ? { benzina: false, diesel: false, gpl: false } : { benzina: true, diesel: true, gpl: st.fuels?.gpl || false },
-                queueLevel: newStatus === 'closed' ? 'Nessuna' : (newStatus === 'limited' ? 'Moderata' : 'Scorrevole'),
+                queueLevel: newStatus === 'closed' ? 'Nessuna' : ((bannerQueue && bannerQueue.id === stationId) ? bannerQueue.q : 'Non indicata'),
                 note: newStatus === 'available' ? 'Aperta.' : newStatus === 'limited' ? 'Limitata.' : 'Chiusa.'
             };
             showToast(st.name, mine ? 'Voto cambiato.' : 'Voto registrato.');
             await castVote(stationId, vote);
+        };
+
+        // scheda piccola: segnalare la coda. Se hai già votato la pompa aperta o limitata, il voto si aggiorna
+        // subito; altrimenti la coda vale per il voto che dai dopo.
+        window.setBannerQueue = async function(stationId, q) {
+            const st = stationsData.find(s => s.id === stationId);
+            if (!st) return;
+            bannerQueue = { id: stationId, q };
+            const mine = myVoteOf(st);
+            if (mine && mine.status !== 'closed') {
+                if (mine.queueLevel === q) return;
+                showToast(st.name, `Coda segnalata: ${QUEUE_LABELS[q]}.`);
+                await castVote(stationId, { ...mine, queueLevel: q, ts: Date.now() });
+            } else {
+                updateMapQuickBanner();
+                showToast(QUEUE_LABELS[q], 'Ora tocca Aperta o Limitata per votare con questa coda.');
+            }
         };
 
         window.removeMyVote = async function(stationId) {
@@ -873,7 +928,7 @@
             const vote = status === 'unverified' ? null : {
                 status,
                 fuels: { benzina: status !== 'closed', diesel: status !== 'closed', gpl: false },
-                queueLevel: status === 'closed' ? 'Nessuna' : (status === 'limited' ? 'Moderata' : 'Scorrevole'),
+                queueLevel: status === 'closed' ? 'Nessuna' : 'Non indicata',
                 note: note || (status === 'available' ? 'Aperta.' : status === 'limited' ? 'Limitata.' : 'Chiusa.')
             };
             const station = { name, brand, address, zone, comune: isOtherComune ? zone : '', lat: Number(pos.lat.toFixed(5)), lng: Number(pos.lng.toFixed(5)) };
