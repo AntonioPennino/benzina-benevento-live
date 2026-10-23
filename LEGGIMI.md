@@ -57,7 +57,8 @@ HTML statico + JavaScript nel browser. L'unico passaggio di "build" è lo stile:
 - Ordine "Più vicini a me": chiede la posizione al browser solo quando lo si sceglie, ordina per distanza, mostra la distanza su ogni scheda e un pallino blu sulla mappa.
 - Sulla mappa le pompe il cui stato non riceve conferme da più di 3 ore sono sbiadite (`STALE_MS`); se si sovrappongono, quelle con notizie fresche stanno sopra.
 - "Condividi" nella scheda grande: menu di condivisione del telefono, oppure copia il link `benzinabn.it/?p=<id>`, che apre direttamente la scheda di quella pompa.
-- Toccando una pompa si apre la scheda grande e, sotto la mappa, la scheda rapida; un tocco fuori dalla scheda rapida (o Esc) la chiude.
+- Toccando una pompa sulla mappa si apre la scheda piccola (voto rapido, pulsanti per la coda, "Dettagli" per la scheda grande); un tocco fuori (o Esc) la chiude.
+- **Code**: ogni voto ha una coda (`queueLevel`): Nessuna coda / Attesa 5-10 min / Coda lunga / Presidio TIR, oppure "Non indicata" per i voti rapidi e "Nessuna" per le pompe chiuse. La coda mostrata è l'ultima segnalata davvero tra i voti in corso di pompe aperte o limitate (`currentQueue`), così un voto rapido senza coda non cancella quella segnalata da altri.
 - Nuovo distributore: la pompa va nel punto esatto dell'indirizzo, cercato con Nominatim (OpenStreetMap); poi si cerca nei dintorni (circa 600 m) il distributore vero con lo stesso nome o marchio (`findFuelStation`) e, se c'è, si usa la sua posizione. Con "Altro Comune…" si scrive il comune e, se l'indirizzo non si trova, il distributore non viene aggiunto; a Benevento, se la ricerca fallisce, si usa la zona scelta.
 
 ## Pubblicazione (Cloudflare Pages)
