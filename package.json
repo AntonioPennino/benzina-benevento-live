@@ -3,13 +3,16 @@
   "private": true,
   "version": "1.0.0",
   "scripts": {
-    "dev": "wrangler pages dev",
+    "dev": "npm run build:css && wrangler pages dev",
+    "build:css": "tailwindcss -c tailwind.config.js -i src/tailwind.css -o public/styles.css --minify",
+    "watch:css": "tailwindcss -c tailwind.config.js -i src/tailwind.css -o public/styles.css --watch",
     "deploy": "node scripts/deploy.mjs",
     "test": "node tests/regola-voti.test.js",
     "test:api": "node --test tests/api.test.mjs",
     "db:local": "wrangler d1 migrations apply benzina-db --local"
   },
   "devDependencies": {
+    "tailwindcss": "^3.4.17",
     "wrangler": "^4.152.0"
   }
 }

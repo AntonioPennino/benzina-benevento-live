@@ -17,6 +17,8 @@ jobs:
       deployments: write
     steps:
       - uses: actions/checkout@v4
+      - name: Dipendenze e stile (Tailwind → public/styles.css)
+        run: npm ci && npm run build:css
       - name: Versione di app.js (evita che i browser usino quella vecchia in cache)
         run: node scripts/stamp-version.mjs "${GITHUB_SHA::8}"
       - uses: cloudflare/wrangler-action@v3

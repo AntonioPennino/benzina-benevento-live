@@ -5,12 +5,13 @@ La vecchia versione su Vercel (https://benzina-benevento-live.vercel.app) non è
 Monitoraggio civico dei distributori di Benevento: i cittadini votano lo stato di ogni pompa (Aperta / Limitata / Esaurita).
 
 ## Com'è fatto
-Nessuna build: HTML statico + JavaScript nel browser.
+HTML statico + JavaScript nel browser. L'unico passaggio di "build" è lo stile: Tailwind genera `public/styles.css` (`npm run build:css`), che va ricreato dopo aver cambiato classi in `index.html` o `app.js`; GitHub Actions lo rigenera comunque a ogni pubblicazione.
 
 | File | Cosa contiene |
 |---|---|
 | `public/` | Tutto ciò che viene pubblicato: è la cartella servita da Cloudflare Pages. |
-| `public/index.html` | Struttura e stile (Tailwind via CDN, Font Awesome, Leaflet). |
+| `public/index.html` | Struttura della pagina (font e icone Font Awesome si caricano senza bloccare la prima schermata). |
+| `public/styles.css` | Stile generato da Tailwind con le sole classi usate (`tailwind.config.js`, `src/tailwind.css`). Non modificarlo a mano. |
 | `public/app.js` | Tutta la logica della pagina: lettura dei dati dalle API, voti, rendering di mappa, elenco e schede. |
 | `public/vendor/leaflet/` | Libreria della mappa (Leaflet 1.9.4) ospitata sul sito, per non dipendere da unpkg.com. |
 | `public/_headers` | Header HTTP di sicurezza applicati da Cloudflare a tutte le pagine. |
@@ -51,6 +52,9 @@ Nessuna build: HTML statico + JavaScript nel browser.
 - Grafica originale (scura, con avviso giallo e rosso, emoji). Mappa stradale OpenStreetMap con Leaflet (la vecchia mappa semplificata è stata tolta).
 - Su telefono: barra **Mappa / Elenco** (una vista alla volta, filtri sempre sopra). Su schermi larghi mappa ed elenco sono affiancati.
 - **Posizioni delle pompe**: stanno nel database (colonne `lat`/`lng`); quelle dei distributori iniziali vengono dai distributori reali su OpenStreetMap. `INITIAL_BENEVENTO_STATIONS` in `app.js` serve solo per la prima schermata, prima che arrivino i dati.
+- Finché non arrivano i dati l'elenco mostra "Caricamento distributori…" (niente pompe finte). La prima richiesta a `/api/stations` parte già dall'`<head>` di `index.html`, in parallelo al resto.
+- Al primo caricamento la mappa inquadra i distributori entro 6 km dal centro.
+- Ordine "Più vicini a me": chiede la posizione al browser solo quando lo si sceglie, ordina per distanza, mostra la distanza su ogni scheda e un pallino blu sulla mappa.
 - Toccando una pompa si apre la scheda grande e, sotto la mappa, la scheda rapida; un tocco fuori dalla scheda rapida (o Esc) la chiude.
 - Nuovo distributore: la pompa va nel punto esatto dell'indirizzo, cercato con Nominatim (OpenStreetMap). Con "Altro Comune…" si scrive il comune e, se l'indirizzo non si trova, il distributore non viene aggiunto; a Benevento, se la ricerca fallisce, si usa la zona scelta.
 
@@ -75,9 +79,10 @@ La prima volta crea il database locale (in `.wrangler/`, separato da quello vero
 ```bash
 npm run db:local
 ```
-Poi avvia il sito e apri http://localhost:8788:
+Poi avvia il sito (genera anche lo stile) e apri http://localhost:8788:
 ```bash
 npm run dev
 ```
 In locale funzionano pagina, voti, nuovi distributori e notizie, tutto sul database locale: i voti di prova **non** finiscono sui dati veri.
+Se cambi classi Tailwind mentre lavori, in un altro terminale lascia acceso `npm run watch:css`.
 Con il server acceso, `npm run test:api` prova le API (scrive solo nel database locale); `npm test` prova la regola dei voti.

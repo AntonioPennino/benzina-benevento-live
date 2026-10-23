@@ -29,7 +29,9 @@
             "C.da Piano Cappelle / Est": { lat: 41.1185, lng: 14.8040 }
         };
 
-        let stationsData = INITIAL_BENEVENTO_STATIONS.map(s => ({ ...s }));
+        // si parte vuoti: finché non arrivano i dati veri l'elenco mostra "Caricamento…"
+        // (INITIAL_BENEVENTO_STATIONS resta come elenco dei distributori iniziali, usato da scripts/export-firebase.mjs)
+        let stationsData = [];
         let currentFilterStatus = 'all';
         let currentSearchQuery = '';
         let currentSortBy = 'recent';
@@ -41,6 +43,10 @@
         let leafletMarkers = {};
         let myVoterId = null;   // id pubblico di questo dispositivo nei voti
         let dataLoaded = false;
+        let loadFailed = false;  // il primo caricamento non è riuscito (l'elenco lo dice invece di restare vuoto)
+        let mapFramed = false;   // la mappa è già stata inquadrata sui distributori
+        let userPos = null;      // posizione del telefono, solo se si sceglie "Più vicini a me"
+        let userMarker = null;
         let pendingVotes = 0;   // voti in corso di salvataggio: intanto l'aggiornamento periodico aspetta
 
         function esc(v) {
@@ -118,17 +124,23 @@
             if (loadingStations || pendingVotes) return;
             loadingStations = true;
             try {
-                const res = await fetch('/api/stations', { cache: 'no-store' });
+                // la prima volta si usa la richiesta già partita dall'head di index.html
+                const early = window.__stationsRequest;
+                window.__stationsRequest = null;
+                const res = (early && await early) || await fetch('/api/stations', { cache: 'no-store' });
                 const data = await res.json().catch(() => ({}));
                 if (!res.ok || !Array.isArray(data.stations)) throw new Error(data.error || `HTTP ${res.status}`);
                 if (pendingVotes) return;
                 // gli id finiscono in attributi HTML: si accettano solo quelli nel formato previsto
                 stationsData = data.stations.filter(st => /^bn-(station|custom)-\d+$/.test(st.id)).map(stationFromApi);
                 dataLoaded = true;
+                loadFailed = false;
                 updateConnectionUI(true, "Dati condivisi in tempo reale");
                 renderAll();
+                frameMapOnStations();
             } catch (err) {
                 console.warn('Elenco distributori non aggiornato', err);
+                if (!dataLoaded) { loadFailed = true; renderStationsList(); }
                 updateConnectionUI(false, dataLoaded ? "Aggiornamento non riuscito: riprovo…" : "Database non raggiungibile: riprovo…");
             } finally {
                 loadingStations = false;
@@ -195,6 +207,7 @@
                 }
                 return true;
             }).sort((a, b) => {
+                if (currentSortBy === 'near' && userPos) return distanceKm(userPos, a) - distanceKm(userPos, b);
                 if (currentSortBy === 'recent') {
                     const timeA = a.lastUpdated || 0;
                     const timeB = b.lastUpdated || 0;
@@ -212,6 +225,20 @@
                 }
                 return (a.name || '').localeCompare(b.name || '');
             });
+        }
+
+        // inquadra i distributori entro 6 km dal centro (quelli di altri comuni restano raggiungibili
+        // spostando la mappa); si fa una volta sola, per non togliere la vista a chi la sta usando
+        function cityBounds() {
+            const pts = stationsData.filter(s => distanceKm(s, BENEVENTO_CENTER) < 6).map(s => [s.lat, s.lng]);
+            return pts.length >= 2 ? L.latLngBounds(pts) : null;
+        }
+        function frameMapOnStations() {
+            if (!leafletMap || mapFramed) return;
+            const b = cityBounds();
+            if (!b) return;
+            mapFramed = true;
+            leafletMap.fitBounds(b, { padding: [24, 24], maxZoom: 15 });
         }
 
         function initLeafletMapIfNeeded() {
@@ -315,6 +342,15 @@
         function renderStationsList() {
             const container = document.getElementById('stationsListContainer');
             if (!container) return;
+            if (!dataLoaded) {
+                container.innerHTML = `
+                    <div class="bg-white rounded-2xl border border-slate-200 p-8 text-center space-y-2" role="status">
+                        <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto text-lg"><i class="fa-solid ${loadFailed ? 'fa-plug-circle-exclamation' : 'fa-gas-pump animate-pulse'}"></i></div>
+                        <h3 class="text-sm font-bold text-slate-800">${loadFailed ? 'Non riesco a caricare i distributori' : 'Caricamento distributori…'}</h3>
+                        ${loadFailed ? '<p class="text-xs text-slate-500">Controlla la connessione: riprovo da solo tra pochi secondi.</p>' : ''}
+                    </div>`;
+                return;
+            }
             const filtered = getFilteredAndSortedStations();
 
             if (filtered.length === 0) {
@@ -360,6 +396,7 @@
                                     <span class="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase bg-slate-900 text-amber-400">${esc(st.brand || 'Distributore')}</span>
                                     ${st.isPressSource ? `<span class="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase bg-red-600 text-white"><i class="fa-solid fa-newspaper mr-1"></i>Fonte Stampa</span>` : ''}
                                     <span class="text-[11px] font-semibold text-slate-500">• ${esc(st.zone)}</span>
+                                    ${userPos ? `<span class="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200"><i class="fa-solid fa-location-arrow mr-0.5"></i>${formatDistance(distanceKm(userPos, st))}</span>` : ''}
                                 </div>
                                 <h3 class="text-sm font-extrabold text-slate-900 mt-0.5 hover:text-red-600 transition">${esc(st.name)}</h3>
                                 <p class="text-xs text-slate-500 flex items-center gap-1"><i class="fa-solid fa-location-dot text-slate-400"></i><span>${esc(st.address)}</span></p>
@@ -393,7 +430,9 @@
         window.resetMapSelection = function() {
             selectedStationId = null;
             renderAll();
-            if (leafletMap) leafletMap.setView([41.1250, 14.7720], 12);
+            if (!leafletMap) return;
+            const b = cityBounds();
+            if (b) leafletMap.fitBounds(b, { padding: [24, 24], maxZoom: 15 }); else leafletMap.setView([41.1250, 14.7720], 12);
         };
 
         // chiude la scheda della pompa senza spostare la mappa
@@ -418,7 +457,32 @@
         window.handleSearchChange = function(val) { currentSearchQuery = val; document.getElementById('clearSearchBtn').classList.toggle('hidden', !val); renderAll(); };
         window.clearSearch = function() { document.getElementById('searchInput').value = ''; window.handleSearchChange(''); };
         window.resetFilters = function() { currentFilterStatus = 'all'; window.clearSearch(); renderAll(); };
-        window.handleSortChange = function(val) { currentSortBy = val; renderStationsList(); };
+        window.handleSortChange = function(val) {
+            if (val !== 'near') { currentSortBy = val; renderStationsList(); return; }
+            // la posizione si chiede solo qui, quando la persona sceglie "Più vicini a me"
+            const select = document.getElementById('sortSelect');
+            const fail = (msg) => { showToast('Posizione non disponibile', msg); select.value = currentSortBy; };
+            if (!navigator.geolocation) return fail('Questo browser non può dare la posizione.');
+            showToast('Cerco la tua posizione…', 'Consenti l’accesso alla posizione se il browser lo chiede.');
+            navigator.geolocation.getCurrentPosition((p) => {
+                userPos = { lat: p.coords.latitude, lng: p.coords.longitude };
+                currentSortBy = 'near';
+                showUserOnMap();
+                renderStationsList();
+                showToast('Ordinati per distanza', 'In cima trovi i distributori più vicini a te.');
+            }, (err) => fail(err.code === 1 ? 'Hai negato l’accesso alla posizione: puoi riattivarlo dalle impostazioni del browser.' : 'Non riesco a trovarti. Riprova all’aperto o tra poco.'),
+            { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
+        };
+
+        function showUserOnMap() {
+            if (!leafletMap || !userPos) return;
+            if (userMarker) userMarker.setLatLng([userPos.lat, userPos.lng]);
+            else userMarker = L.circleMarker([userPos.lat, userPos.lng], { radius: 8, color: '#FFFFFF', weight: 3, fillColor: '#2563EB', fillOpacity: 1 }).addTo(leafletMap).bindTooltip('Tu sei qui');
+            const nearest = getFilteredAndSortedStations()[0];
+            if (nearest) leafletMap.fitBounds(L.latLngBounds([[userPos.lat, userPos.lng], [nearest.lat, nearest.lng]]), { padding: [40, 40], maxZoom: 15 });
+        }
+
+        function formatDistance(km) { return km < 1 ? `${Math.round(km * 1000 / 10) * 10} m` : `${km.toFixed(1).replace('.', ',')} km`; }
 
         window.openStationModal = function(stationId) {
             const st = stationsData.find(s => s.id === stationId);
