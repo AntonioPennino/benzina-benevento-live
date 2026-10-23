@@ -53,16 +53,16 @@ Marchio e quartiere obbligatori, "Nome / Via" e "Indirizzo" che si sovrappongono
 
 | Problema | Proposta |
 |---|---|
-| Risposta sotto la piega | Primo schermo: riepilogo **"Aperte 7 · Con code 1 · Esaurite 4 · Senza notizie 9"** (sono anche i filtri), ricerca, **"Vicino a me"**, mappa subito sotto, poi l'elenco. Notizie della stampa in fondo, chiuse. |
+| Risposta sotto la piega | Primo schermo: riepilogo su due righe senza scorrere (**Tutte · Senza notizie** / **Aperte · Code · Esaurite**), che è anche il filtro, ricerca, **"Vicino a me"**, mappa subito sotto, poi l'elenco. Notizie della stampa in fondo, chiuse. |
 | Elenco lungo | **Una riga per pompa** (~70 px): simbolo dello stato, nome, via o distanza, coda; a destra stato + "8 min fa". Circa 8 pompe per schermo. |
 | Freschezza | Lo stato è sempre accompagnato da "x min fa"; oltre 3 ore diventa "da confermare" e la pompa è tratteggiata. Ordine predefinito: **prima le notizie utili** (aperte, con code, esaurite, senza notizie; le più fresche in alto). Con "Vicino a me": dal più vicino. |
 | Voti per sbaglio | Dall'elenco e dalla mappa si **apre la scheda**, non si vota. Nella scheda: tre pulsanti grandi "Aperta / Code / Esaurita"; **un tocco salva il voto**, con messaggio "Voto registrato · **Annulla**". Solo dopo compaiono, facoltativi, "C'è coda?" e "Cosa c'è?". I conteggi sono testo ("2 aperta · 0 code · 0 esaurita"), non pulsanti. |
 | Etichette | Un solo vocabolario: **Aperta, Code, Esaurita, Nessuna notizia**, sempre con lo stesso simbolo (✓, clessidra, ✕, ?). |
 | Troppo rumore | Intestazione scura sobria, una sola striscia d'avviso chiudibile, colore usato solo per gli stati. |
-| Dati poco affidabili | Carburanti mostrati solo se qualcuno li ha indicati; i voti rapidi non inventano carburanti o code. |
+| Dati poco affidabili | Nella scheda le caselle **Benzina / Diesel / GPL** e la coda sono sempre visibili e partono insieme al voto. Se dei voti non contano più (45 minuti senza conferme) la scheda lo scrive, invece di farli sembrare spariti. |
 | Mappa a colori | Segnaposto con **simbolo** oltre al colore; notizie vecchie tratteggiate; pompa aperta in evidenza. |
 | Scheda | Su telefono è un **pannello dal basso** (come Google Maps), su computer un pannello laterale. Pulsanti **Indicazioni** (navigatore) e **Condividi** in alto. Il tasto indietro la chiude. |
-| Nuova pompa | Due passi: nome + via + comune → **mappa con il segnaposto trascinabile** e avviso **"Forse c'è già"** se c'è una pompa entro 200 m → marchio (facoltativo) e "Com'è adesso?" con l'opzione **Non so**. Il quartiere si ricava dalla posizione. |
+| Nuova pompa | Facile ma con dati controllati. Passo 1: **"Sono alla pompa: usa la mia posizione"** (trova comune e via) oppure **comune a tendina** (i 78 comuni della provincia) + **via scelta tra quelle vere** suggerite mentre scrivi + numero civico facoltativo; **nome e marchio obbligatori**. Passo 2: mappa con il segnaposto trascinabile solo vicino alla via, avviso **"Forse c'è già"** che blocca finché non confermi "è un'altra pompa", "Com'è adesso?" (anche "Non so") e carburanti. Il server ripete i controlli: comune della provincia, posizione entro 12 km dal comune, nome e via sensati. |
 | Dettagli | Niente ID nel fondo pagina; "Come funziona" spiega in 6 righe come si decide lo stato; testi ≥ 13 px, pulsanti ≥ 44 px. |
 
 ## Cosa resta da decidere prima di passarla sul sito

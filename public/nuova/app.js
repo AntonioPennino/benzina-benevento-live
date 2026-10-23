@@ -128,17 +128,13 @@ function visibleStations() {
 
 function renderSummary() {
     const n = (s) => stations.filter(st => st.status === s).length;
-    const chips = [
-        ['all', 'Tutte', stations.length, 'fa-gas-pump', 'text-slate-700'],
-        ['available', 'Aperte', n('available'), 'fa-check', 'text-emerald-600'],
-        ['limited', 'Con code', n('limited'), 'fa-hourglass-half', 'text-amber-600'],
-        ['closed', 'Esaurite', n('closed'), 'fa-xmark', 'text-red-600'],
-        ['unverified', 'Senza notizie', n('unverified'), 'fa-question', 'text-slate-500'],
-    ];
-    $('summary').innerHTML = chips.map(([k, label, count, icon, color]) => `
-        <button onclick="setFilter('${k}')" aria-pressed="${filter === k}" class="shrink-0 inline-flex items-center gap-1.5 h-10 px-3 rounded-xl border text-[14px] font-semibold transition ${filter === k ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white border-slate-200 text-slate-800 hover:bg-slate-50'}">
-            <i class="fa-solid ${icon} ${filter === k ? 'text-amber-400' : color}"></i>${label}<span class="font-extrabold">${loaded ? count : '–'}</span>
-        </button>`).join('');
+    const chip = ([k, label, icon, color]) => `
+        <button onclick="setFilter('${k}')" aria-pressed="${filter === k}" class="min-w-0 inline-flex items-center justify-center gap-1.5 h-11 px-2 rounded-xl border text-[14px] font-semibold transition ${filter === k ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white border-slate-200 text-slate-800 hover:bg-slate-50'}">
+            <i class="fa-solid ${icon} ${filter === k ? 'text-amber-400' : color}"></i><span class="truncate">${label}</span><span class="font-extrabold">${loaded ? (k === 'all' ? stations.length : n(k)) : '–'}</span>
+        </button>`;
+    $('summary').innerHTML = `
+        <div class="grid grid-cols-2 gap-2">${[['all', 'Tutte', 'fa-gas-pump', 'text-slate-700'], ['unverified', 'Senza notizie', 'fa-question', 'text-slate-500']].map(chip).join('')}</div>
+        <div class="grid grid-cols-3 gap-2 mt-2">${[['available', 'Aperte', 'fa-check', 'text-emerald-600'], ['limited', 'Code', 'fa-hourglass-half', 'text-amber-600'], ['closed', 'Esaurite', 'fa-xmark', 'text-red-600']].map(chip).join('')}</div>`;
 }
 
 function queueText(st) { return st.status !== 'closed' && QUEUE_LABELS[st.queueLevel] ? QUEUE_LABELS[st.queueLevel] : ''; }
@@ -253,11 +249,14 @@ window.closeSheet = function (fromHistory) {
     $('sheet').classList.add('closed');
     $('sheetBackdrop').classList.add('hidden');
     sheetMode = null; openId = null;
-    if (!fromHistory && history.state && history.state.sheet) history.back();
+    // la scheda è già chiusa: il "popstate" che arriva da questo history.back() non deve chiudere
+    // un'eventuale scheda aperta subito dopo
+    if (!fromHistory && history.state && history.state.sheet) { ignoreNextPop = true; history.back(); }
     render();
 };
 // il tasto "indietro" del telefono chiude la scheda invece di uscire dal sito
-window.addEventListener('popstate', () => { if (sheetMode) closeSheet(true); });
+let ignoreNextPop = false;
+window.addEventListener('popstate', () => { if (ignoreNextPop) { ignoreNextPop = false; return; } if (sheetMode) closeSheet(true); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSheet(); });
 function pushSheetState(url) { if (!(history.state && history.state.sheet)) history.pushState({ sheet: true }, '', url || location.href); else history.replaceState({ sheet: true }, '', url || location.href); }
 
@@ -278,11 +277,15 @@ function renderStationSheet() {
     if (!st) return closeSheet();
     const s = STATUS[st.status], stale = isStale(st), mine = myVote(st), counts = voteCounts(st);
     const total = counts.available + counts.limited + counts.closed;
+    const oldTotal = counts.old.available + counts.old.limited + counts.old.closed;
+    const oldText = [['available', 'aperta'], ['limited', 'code'], ['closed', 'esaurita']].filter(([k]) => counts.old[k]).map(([k, l]) => `${counts.old[k]} ${l}`).join(', ');
     const q = queueText(st);
     const fuels = st.status !== 'unverified' && st.status !== 'closed' ? [['benzina', 'Benzina'], ['diesel', 'Diesel'], ['gpl', 'GPL']].filter(([k]) => typeof st.fuels?.[k] === 'boolean') : [];
     const note = st.lastNote && !DEFAULT_NOTES.includes(st.lastNote) ? st.lastNote : '';
     const dirUrl = `https://www.google.com/maps/dir/?api=1&destination=${st.lat},${st.lng}`;
-    const showStep2 = mine && mine.status !== 'closed';
+    // carburanti e coda: quelli del tuo voto, oppure una bozza (Benzina e Diesel spuntati) che parte col voto
+    const draft = draftFor(st, mine);
+    const detailsOpen = !mine || mine.status !== 'closed';
     showSheet(`
         <div class="px-5 pt-2 pb-safe">
             <div class="flex items-start gap-3">
@@ -309,7 +312,8 @@ function renderStationSheet() {
                 ${q ? `<p class="mt-3 text-[14px] font-semibold ${st.queueLevel === 'Scorrevole' ? 'text-emerald-800' : 'text-amber-800'}"><i class="fa-solid fa-car-side mr-1.5"></i>${esc(q)}${st.queueTs ? ` <span class="font-normal text-slate-500">· ${ago(st.queueTs)}</span>` : ''}</p>` : ''}
                 ${fuels.length ? `<p class="mt-2 flex flex-wrap gap-1.5">${fuels.map(([k, l]) => `<span class="px-2 py-0.5 rounded-lg text-[13px] font-semibold ${st.fuels[k] ? 'bg-white text-emerald-800' : 'bg-white/60 text-slate-400 line-through'}">${l}</span>`).join('')}</p>` : ''}
                 ${note ? `<p class="mt-2 text-[14px] text-slate-700 italic">"${esc(note)}"</p>` : ''}
-                ${total ? `<p class="mt-3 text-[12px] text-slate-500">Negli ultimi voti: ${counts.available} aperta · ${counts.limited} code · ${counts.closed} esaurita <button onclick="openHowItWorks()" class="underline">come si decide</button></p>` : ''}
+                ${total ? `<p class="mt-3 text-[12px] text-slate-500">Voti che contano: ${counts.available} aperta · ${counts.limited} code · ${counts.closed} esaurita <button onclick="openHowItWorks()" class="underline">come si decide</button></p>` : ''}
+                ${oldTotal ? `<p class="mt-1.5 text-[12px] text-slate-500"><i class="fa-solid fa-clock-rotate-left mr-1"></i>${oldTotal} ${oldTotal === 1 ? 'voto precedente' : 'voti precedenti'} (${oldText}) non ${oldTotal === 1 ? 'conta' : 'contano'} più: nessuno aveva confermato lo stato per 45 minuti, e il voto arrivato dopo ha fatto ripartire il conteggio.</p>` : ''}
             </div>
 
             <div class="mt-5">
@@ -321,20 +325,29 @@ function renderStationSheet() {
                         return `<button onclick="vote('${k}')" aria-pressed="${!!on}" class="h-20 rounded-2xl border-2 flex flex-col items-center justify-center gap-1 text-[14px] font-bold transition active:scale-95 ${on ? `${c.solid} border-transparent text-white` : `bg-white ${c.ring} ${c.text}`}"><i class="fa-solid ${c.icon} text-lg"></i>${c.short}${on ? '<span class="text-[11px] font-semibold opacity-90">il tuo voto</span>' : ''}</button>`;
                     }).join('')}
                 </div>
-                ${showStep2 ? `
+                ${detailsOpen ? `
                 <div class="mt-3 rounded-2xl bg-slate-50 border border-slate-200 p-3.5 space-y-3">
                     <div>
-                        <div class="text-[14px] font-bold mb-1.5"><i class="fa-solid fa-car-side mr-1 text-slate-500"></i>C’è coda?</div>
-                        <div class="flex flex-wrap gap-1.5">${QUEUE_CHOICES.map(qq => `<button onclick="setQueue('${qq}')" aria-pressed="${mine.queueLevel === qq}" class="h-10 px-3 rounded-xl border text-[13px] font-semibold ${mine.queueLevel === qq ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white border-slate-300 hover:bg-slate-100'}">${QUEUE_LABELS[qq]}</button>`).join('')}</div>
+                        <div class="text-[14px] font-bold mb-1.5"><i class="fa-solid fa-gas-pump mr-1 text-slate-500"></i>Quali carburanti ci sono?</div>
+                        <div class="flex flex-wrap gap-1.5">${[['benzina', 'Benzina'], ['diesel', 'Diesel'], ['gpl', 'GPL']].map(([k, l]) => { const on = draft.fuels[k] === true; return `<label class="inline-flex items-center gap-2 h-11 px-3 rounded-xl border bg-white text-[14px] font-semibold cursor-pointer ${on ? 'border-emerald-500 text-emerald-800' : 'border-slate-300 text-slate-500'}"><input type="checkbox" ${on ? 'checked' : ''} onchange="toggleFuel('${k}', this.checked)" class="w-5 h-5 accent-emerald-600">${l}</label>`; }).join('')}</div>
                     </div>
                     <div>
-                        <div class="text-[14px] font-bold mb-1.5"><i class="fa-solid fa-gas-pump mr-1 text-slate-500"></i>Cosa c’è? <span class="font-normal text-slate-500">(tocca per indicare)</span></div>
-                        <div class="flex flex-wrap gap-1.5">${[['benzina', 'Benzina'], ['diesel', 'Diesel'], ['gpl', 'GPL']].map(([k, l]) => { const v = mine.fuels?.[k]; return `<button onclick="toggleFuel('${k}')" class="h-10 px-3 rounded-xl border text-[13px] font-semibold ${v === true ? 'bg-emerald-600 border-emerald-600 text-white' : v === false ? 'bg-white border-slate-300 text-slate-400 line-through' : 'bg-white border-slate-300'}">${v === true ? '<i class="fa-solid fa-check mr-1"></i>' : v === false ? '<i class="fa-solid fa-xmark mr-1"></i>' : ''}${l}</button>`; }).join('')}</div>
+                        <div class="text-[14px] font-bold mb-1.5"><i class="fa-solid fa-car-side mr-1 text-slate-500"></i>C’è coda?</div>
+                        <div class="flex flex-wrap gap-1.5">${QUEUE_CHOICES.map(qq => `<button onclick="setQueue('${qq}')" aria-pressed="${draft.queue === qq}" class="h-10 px-3 rounded-xl border text-[13px] font-semibold ${draft.queue === qq ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white border-slate-300 hover:bg-slate-100'}">${QUEUE_LABELS[qq]}</button>`).join('')}</div>
                     </div>
+                    ${mine ? '' : '<p class="text-[13px] text-slate-500"><i class="fa-solid fa-arrow-up mr-1"></i>Tocca Aperta o Code qui sopra per inviare: carburanti e coda partono insieme al voto.</p>'}
                 </div>` : ''}
                 ${mine ? '<button onclick="vote(null)" class="mt-3 text-[13px] font-semibold text-red-700 underline">Togli il mio voto</button>' : ''}
             </div>
         </div>`);
+}
+
+// bozza di carburanti e coda per chi non ha ancora votato (si azzera cambiando pompa)
+let draftState = null;
+function draftFor(st, mine) {
+    if (mine && mine.status !== 'closed') return { fuels: { benzina: mine.fuels?.benzina === true, diesel: mine.fuels?.diesel === true, gpl: mine.fuels?.gpl === true }, queue: mine.queueLevel };
+    if (!draftState || draftState.id !== st.id) draftState = { id: st.id, fuels: { benzina: true, diesel: true, gpl: false }, queue: null };
+    return draftState;
 }
 
 // voto: si salva subito al primo tocco; coda e carburanti lo aggiornano dopo
@@ -368,8 +381,8 @@ window.vote = async function (status) {
     if (status && prev && prev.status === status) return; // già votato così: si cambia coda/carburanti sotto
     const v = status === null ? null : {
         status, ts: Date.now(),
-        fuels: status === 'closed' ? { benzina: false, diesel: false, gpl: false } : { benzina: null, diesel: null, gpl: null },
-        queueLevel: status === 'closed' ? 'Nessuna' : 'Non indicata',
+        fuels: status === 'closed' ? { benzina: false, diesel: false, gpl: false } : { ...(prev && prev.status !== 'closed' ? draftFor(st, prev) : draftFor(st, null)).fuels },
+        queueLevel: status === 'closed' ? 'Nessuna' : ((prev && prev.status !== 'closed' ? prev.queueLevel : draftFor(st, null).queue) || 'Non indicata'),
         note: status === 'available' ? 'Aperta.' : status === 'limited' ? 'Limitata.' : 'Chiusa.',
     };
     const id = st.id;
@@ -379,15 +392,17 @@ window.vote = async function (status) {
 };
 window.setQueue = async function (q) {
     const st = stations.find(s => s.id === openId), mine = st && myVote(st);
-    if (!mine || mine.queueLevel === q) return;
+    if (!st) return;
+    if (!mine || mine.status === 'closed') { draftFor(st, null).queue = q; renderStationSheet(); return; }
+    if (mine.queueLevel === q) return;
     if (await sendVote(st.id, { ...mine, queueLevel: q, ts: Date.now() })) toast(`Grazie: ${QUEUE_LABELS[q].toLowerCase()}`);
 };
-window.toggleFuel = async function (k) {
+window.toggleFuel = async function (k, on) {
     const st = stations.find(s => s.id === openId), mine = st && myVote(st);
-    if (!mine) return;
-    const v = mine.fuels?.[k];
-    const next = v === null || v === undefined ? true : v === true ? false : null; // non indicato → c'è → non c'è → non indicato
-    await sendVote(st.id, { ...mine, fuels: { ...(mine.fuels || {}), [k]: next }, ts: Date.now() });
+    if (!st) return;
+    if (!mine || mine.status === 'closed') { draftFor(st, null).fuels[k] = on; renderStationSheet(); return; }
+    const fuels = { ...draftFor(st, mine).fuels, [k]: on };
+    await sendVote(st.id, { ...mine, fuels, ts: Date.now() });
 };
 
 window.shareStation = async function () {
@@ -424,87 +439,209 @@ window.openHowItWorks = function () {
 };
 
 // ---------- nuovo distributore ----------
-let addState = null;
+// Facile ma con dati controllati: comune scelto dall'elenco dei 78 comuni, via scelta tra quelle vere
+// trovate su OpenStreetMap (oppure dalla posizione del telefono), posizione confermata sulla mappa,
+// avviso se la pompa c'è già. Il server ripete i controlli (lib/benzina.ts).
+const BRANDS = ['Eni', 'Q8', 'Esso', 'IP', 'Tamoil', 'Energas', 'Pompa Bianca'];
+const MAX_KM_FROM_COMUNE = 12;
+let addState = null, addMap = null, streetTimer = null;
+
 window.openAddStation = function () {
     sheetMode = 'add'; openId = null;
-    addState = { step: 1, name: '', address: '', comune: 'Benevento', pos: null, brand: 'Pompa Bianca', status: null, zone: '' };
+    addState = { step: 1, comune: 'Benevento', streetInput: '', street: null, number: '', fromGps: false, gpsPos: null, name: '', brand: '', pos: null, zone: '', status: undefined, fuels: { benzina: true, diesel: true, gpl: false }, dupConfirmed: false, suggestions: [] };
     pushSheetState();
     renderAddSheet();
 };
+
+const fieldCls = 'mt-1 w-full h-12 px-3 rounded-xl border border-slate-300 bg-white text-[16px] focus:outline-none focus:ring-2 focus:ring-amber-400';
+function addStep1Ready() { const a = addState; return a.street && findComune(a.comune) && a.name.trim().length >= 3 && a.brand; }
+
 function renderAddSheet() {
     const a = addState;
     const near = a.pos ? stations.filter(s => km(s, a.pos) < 0.2) : [];
-    showSheet(`
-        <div class="px-5 pt-2 pb-safe">
-            <div class="flex items-start gap-3"><h2 id="sheetTitle" class="flex-1 text-[20px] font-extrabold">Segnala una pompa che manca</h2>${closeBtn}</div>
-            <p class="text-[13px] text-slate-500 mt-1">Passo ${a.step} di 2</p>
-            ${a.step === 1 ? `
-            <form onsubmit="event.preventDefault(); addFind()" class="mt-4 space-y-3">
-                <label class="block"><span class="text-[14px] font-bold">Nome del distributore</span>
-                    <input id="addName" required maxlength="50" value="${esc(a.name)}" placeholder="Es. Oroil, Esso via Napoli" class="mt-1 w-full h-12 px-3 rounded-xl border border-slate-300 text-[16px]"></label>
-                <label class="block"><span class="text-[14px] font-bold">Via (e numero, se lo sai)</span>
-                    <input id="addAddress" required maxlength="70" value="${esc(a.address)}" placeholder="Es. Via Napoli 121" class="mt-1 w-full h-12 px-3 rounded-xl border border-slate-300 text-[16px]"></label>
-                <label class="block"><span class="text-[14px] font-bold">Comune</span>
-                    <input id="addComune" required maxlength="40" value="${esc(a.comune)}" class="mt-1 w-full h-12 px-3 rounded-xl border border-slate-300 text-[16px]"></label>
-                <button id="addFindBtn" class="w-full h-12 rounded-xl bg-slate-900 text-white text-[15px] font-bold"><i class="fa-solid fa-map-location-dot mr-1.5"></i>Trova sulla mappa</button>
-            </form>` : `
-            <div class="mt-3">
-                <div id="addMap" class="h-48 rounded-2xl overflow-hidden border border-slate-200"></div>
-                <p class="text-[13px] text-slate-500 mt-1.5"><i class="fa-solid fa-hand-pointer mr-1"></i>Se il punto non è giusto, trascina il segnaposto sulla pompa.</p>
-                ${near.length ? `<div class="mt-3 rounded-2xl bg-amber-50 border border-amber-200 p-3 text-[14px]"><strong>Forse c’è già:</strong>${near.map(s => `<button onclick="openStation('${esc(s.id)}')" class="block mt-1.5 text-left underline">${esc(s.name)} · ${esc(s.address)}</button>`).join('')}</div>` : ''}
-                <label class="block mt-4"><span class="text-[14px] font-bold">Marchio</span>
-                    <select id="addBrand" onchange="addState.brand=this.value" class="mt-1 w-full h-12 px-3 rounded-xl border border-slate-300 text-[16px] bg-white">
-                        ${['Eni', 'Q8', 'Esso', 'IP', 'Tamoil', 'Energas', 'Pompa Bianca'].map(b => `<option value="${b}" ${a.brand === b ? 'selected' : ''}>${b === 'Pompa Bianca' ? 'Altro / pompa bianca' : b}</option>`).join('')}
+    const head = `<div class="flex items-start gap-3"><div class="flex-1"><h2 id="sheetTitle" class="text-[20px] font-extrabold">Segnala una pompa che manca</h2><p class="text-[13px] text-slate-500">Passo ${a.step} di 2 · ${a.step === 1 ? 'dove si trova' : 'conferma e stato'}</p></div>${closeBtn}</div>`;
+    if (a.step === 1) {
+        showSheet(`<div class="px-5 pt-2 pb-safe">${head}
+            <button onclick="addUseMyPosition()" id="addGpsBtn" class="mt-4 w-full h-12 rounded-xl border-2 border-blue-600 text-blue-700 text-[15px] font-bold"><i class="fa-solid fa-location-crosshairs mr-1.5"></i>Sono alla pompa: usa la mia posizione</button>
+            <p class="text-[12px] text-slate-500 mt-1 text-center">Trova da sola comune e via. Oppure scegli qui sotto.</p>
+            <div class="mt-4 space-y-3">
+                <label class="block"><span class="text-[14px] font-bold">Comune *</span>
+                    <select id="addComune" onchange="addSetComune(this.value)" class="${fieldCls}">
+                        ${COMUNI.map(c => `<option ${comuneKey(c.nome) === comuneKey(a.comune) ? 'selected' : ''}>${esc(c.nome)}</option>`).join('')}
                     </select></label>
-                <div class="mt-4"><span class="text-[14px] font-bold">Com’è adesso?</span>
-                    <div class="grid grid-cols-4 gap-1.5 mt-1">${[['available', 'Aperta'], ['limited', 'Code'], ['closed', 'Esaurita'], [null, 'Non so']].map(([k, l]) => `<button onclick="addState.status=${k ? `'${k}'` : 'null'}; renderAddSheet()" class="h-12 rounded-xl border text-[13px] font-bold ${a.status === k ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white border-slate-300'}">${l}</button>`).join('')}</div>
+                <div class="relative">
+                    <label class="block"><span class="text-[14px] font-bold">Via *</span>
+                        <input id="addStreet" autocomplete="off" value="${esc(a.street ? a.street.name : a.streetInput)}" oninput="addStreetInput(this.value)" placeholder="Inizia a scrivere, poi scegli dall'elenco" class="${fieldCls} ${a.street ? 'border-emerald-500' : ''}"></label>
+                    ${a.street ? `<p class="text-[12px] text-emerald-700 mt-1"><i class="fa-solid fa-check mr-1"></i>Via trovata a ${esc(a.comune)}${a.fromGps ? ' (dalla tua posizione)' : ''}</p>` : '<p class="text-[12px] text-slate-500 mt-1">La via deve esistere: sceglila tra i suggerimenti.</p>'}
+                    <ul id="addSuggestions" class="${a.suggestions.length && !a.street ? '' : 'hidden'} absolute z-10 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-56 overflow-y-auto">
+                        ${a.suggestions.map((sg, i) => `<li><button type="button" onclick="addPickStreet(${i})" class="w-full text-left px-3 py-2.5 text-[15px] hover:bg-slate-50 border-b border-slate-100">${esc(sg.name)}${sg.suburb ? ` <span class="text-slate-400 text-[13px]">· ${esc(sg.suburb)}</span>` : ''}</button></li>`).join('')}
+                    </ul>
                 </div>
-                <div class="flex gap-2 mt-5">
-                    <button onclick="addState.step=1; renderAddSheet()" class="h-12 px-4 rounded-xl bg-slate-100 font-bold">Indietro</button>
-                    <button id="addSaveBtn" onclick="addSave()" class="flex-1 h-12 rounded-xl bg-amber-400 text-slate-900 text-[15px] font-extrabold">Aggiungi alla mappa</button>
-                </div>
-            </div>`}
-        </div>`);
-    if (a.step === 2) setTimeout(() => {
-        const m = L.map('addMap', { zoomControl: false, attributionControl: false }).setView([a.pos.lat, a.pos.lng], 17);
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(m);
+                <label class="block"><span class="text-[14px] font-bold">Numero civico</span> <span class="text-[13px] text-slate-500">(se lo sai)</span>
+                    <input id="addNumber" inputmode="numeric" maxlength="8" value="${esc(a.number)}" oninput="addState.number=this.value" class="${fieldCls}"></label>
+                <label class="block"><span class="text-[14px] font-bold">Nome del distributore *</span>
+                    <input id="addName" maxlength="50" value="${esc(a.name)}" oninput="addState.name=this.value; addRefreshNext()" placeholder="Es. Oroil, Ghepardoil" class="${fieldCls}"></label>
+                <label class="block"><span class="text-[14px] font-bold">Marchio *</span>
+                    <select id="addBrand" onchange="addState.brand=this.value; addRefreshNext()" class="${fieldCls}">
+                        <option value="" ${a.brand ? '' : 'selected'} disabled>Scegli…</option>
+                        ${BRANDS.map(b => `<option value="${b}" ${a.brand === b ? 'selected' : ''}>${b === 'Pompa Bianca' ? 'Altro / pompa bianca' : b}</option>`).join('')}
+                    </select></label>
+                <button id="addNextBtn" onclick="addGoStep2()" ${addStep1Ready() ? '' : 'disabled'} class="w-full h-12 rounded-xl bg-slate-900 text-white text-[15px] font-bold disabled:opacity-40">Continua</button>
+            </div></div>`);
+        return;
+    }
+    showSheet(`<div class="px-5 pt-2 pb-safe">${head}
+        <p class="mt-3 text-[15px]"><strong>${esc(a.name)}</strong> · ${esc(a.street.name)}${a.number ? ' ' + esc(a.number) : ''}, ${esc(a.comune)}</p>
+        <div id="addMap" class="mt-2 h-52 rounded-2xl overflow-hidden border border-slate-200"></div>
+        <p class="text-[13px] text-slate-500 mt-1.5"><i class="fa-solid fa-hand-pointer mr-1"></i>Il segnaposto va sulla pompa: se serve, trascinalo (solo vicino alla via scelta).</p>
+        ${near.length ? `<div class="mt-3 rounded-2xl bg-amber-50 border border-amber-300 p-3 text-[14px]">
+            <strong><i class="fa-solid fa-triangle-exclamation mr-1 text-amber-600"></i>Forse c’è già:</strong>
+            ${near.map(s => `<button onclick="openStation('${esc(s.id)}')" class="block mt-1.5 text-left underline">${esc(s.name)} · ${esc(s.address)}</button>`).join('')}
+            <label class="flex items-center gap-2 mt-2.5 font-semibold"><input type="checkbox" ${a.dupConfirmed ? 'checked' : ''} onchange="addState.dupConfirmed=this.checked; renderAddSheet()" class="w-5 h-5 accent-amber-600"> No, è un’altra pompa</label>
+        </div>` : ''}
+        <div class="mt-4"><span class="text-[14px] font-bold">Com’è adesso? *</span>
+            <div class="grid grid-cols-4 gap-1.5 mt-1">${[['available', 'Aperta'], ['limited', 'Code'], ['closed', 'Esaurita'], [null, 'Non so']].map(([k, l]) => `<button onclick="addState.status=${k ? `'${k}'` : 'null'}; renderAddSheet()" class="h-12 rounded-xl border text-[13px] font-bold ${a.status === k ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white border-slate-300'}">${l}</button>`).join('')}</div>
+        </div>
+        ${a.status === 'available' || a.status === 'limited' ? `<div class="mt-3"><span class="text-[14px] font-bold">Quali carburanti ci sono?</span>
+            <div class="flex flex-wrap gap-1.5 mt-1">${[['benzina', 'Benzina'], ['diesel', 'Diesel'], ['gpl', 'GPL']].map(([k, l]) => `<label class="inline-flex items-center gap-2 h-11 px-3 rounded-xl border bg-white text-[14px] font-semibold ${a.fuels[k] ? 'border-emerald-500 text-emerald-800' : 'border-slate-300 text-slate-500'}"><input type="checkbox" ${a.fuels[k] ? 'checked' : ''} onchange="addState.fuels.${k}=this.checked; renderAddSheet()" class="w-5 h-5 accent-emerald-600">${l}</label>`).join('')}</div></div>` : ''}
+        <div class="flex gap-2 mt-5">
+            <button onclick="addState.step=1; renderAddSheet()" class="h-12 px-4 rounded-xl bg-slate-100 font-bold">Indietro</button>
+            <button id="addSaveBtn" onclick="addSave()" ${a.status === undefined || (near.length && !a.dupConfirmed) ? 'disabled' : ''} class="flex-1 h-12 rounded-xl bg-amber-400 text-slate-900 text-[15px] font-extrabold disabled:opacity-40">Aggiungi alla mappa</button>
+        </div>
+        ${a.status === undefined ? '<p class="text-[12px] text-slate-500 mt-1.5 text-center">Scegli com’è adesso (anche “Non so”).</p>' : ''}
+    </div>`);
+    setTimeout(() => {
+        // se nel frattempo la scheda è stata ridisegnata, la mappa è già sul riquadro nuovo
+        const el = $('addMap');
+        if (!el || el._leaflet_id) return;
+        addMap = L.map('addMap', { zoomControl: false, attributionControl: false }).setView([a.pos.lat, a.pos.lng], 17);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(addMap);
+        const anchor = a.anchor;
         L.marker([a.pos.lat, a.pos.lng], { draggable: true, icon: L.divIcon({ className: '', html: '<div class="pin pin-unverified"><i class="fa-solid fa-gas-pump"></i></div>', iconSize: [34, 34], iconAnchor: [17, 17] }) })
-            .on('dragend', (e) => { const ll = e.target.getLatLng(); a.pos = { lat: ll.lat, lng: ll.lng }; }).addTo(m);
+            .on('dragend', (e) => {
+                const ll = e.target.getLatLng();
+                if (km({ lat: ll.lat, lng: ll.lng }, anchor) > 0.6) { e.target.setLatLng([a.pos.lat, a.pos.lng]); toast('Il segnaposto deve restare vicino alla via scelta.'); return; }
+                a.pos = { lat: ll.lat, lng: ll.lng }; renderAddSheet();
+            }).addTo(addMap);
     }, 50);
 }
+function addRefreshNext() { const b = $('addNextBtn'); if (b) b.disabled = !addStep1Ready(); }
+
 async function nominatim(params) {
-    const url = 'https://nominatim.openstreetmap.org/' + params;
-    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    const res = await fetch('https://nominatim.openstreetmap.org/' + params + '&accept-language=it', { signal: AbortSignal.timeout(8000) });
     return res.ok ? res.json() : null;
 }
-window.addFind = async function () {
+const placeOf = (ad) => ad.city || ad.town || ad.village || ad.municipality || '';
+
+window.addSetComune = function (name) {
     const a = addState;
-    a.name = $('addName').value.trim(); a.address = $('addAddress').value.trim(); a.comune = $('addComune').value.trim() || 'Benevento';
-    const btn = $('addFindBtn'); btn.disabled = true; btn.textContent = 'Cerco…';
+    a.comune = name; a.street = null; a.fromGps = false; a.suggestions = [];
+    a.name = $('addName').value; a.number = $('addNumber').value;
+    renderAddSheet();
+};
+// suggerimenti di vie vere nel comune scelto mentre si scrive: Photon (dati OpenStreetMap, accetta parole
+// a metà); si tengono solo le strade di quel comune
+window.addStreetInput = function (v) {
+    const a = addState;
+    a.streetInput = v; a.street = null; a.fromGps = false;
+    addRefreshNext();
+    clearTimeout(streetTimer);
+    if (v.trim().length < 3) { a.suggestions = []; $('addSuggestions').classList.add('hidden'); return; }
+    streetTimer = setTimeout(async () => {
+        const c = findComune(a.comune);
+        let feats = [];
+        try {
+            const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(v.trim())}&limit=15&osm_tag=highway${c ? `&lat=${c.lat}&lon=${c.lng}` : ''}`;
+            const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+            if (res.ok) feats = (await res.json()).features || [];
+        } catch (e) { console.warn('Suggerimenti vie non disponibili', e); }
+        if (addState !== a || a.streetInput !== v) return;
+        const seen = new Set();
+        a.suggestions = feats.filter(f => f.properties?.name && comuneKey(f.properties.city || f.properties.town || f.properties.village || '') === comuneKey(a.comune))
+            .map(f => ({ name: f.properties.name, suburb: f.properties.district || f.properties.locality || '', lat: f.geometry.coordinates[1], lng: f.geometry.coordinates[0] }))
+            .filter(sg => { const k = sg.name + sg.suburb; if (seen.has(k)) return false; seen.add(k); return true; })
+            .slice(0, 8);
+        const ul = $('addSuggestions');
+        if (!ul) return;
+        ul.innerHTML = a.suggestions.length
+            ? a.suggestions.map((sg, i) => `<li><button type="button" onclick="addPickStreet(${i})" class="w-full text-left px-3 py-2.5 text-[15px] hover:bg-slate-50 border-b border-slate-100">${esc(sg.name)}${sg.suburb ? ` <span class="text-slate-400 text-[13px]">· ${esc(sg.suburb)}</span>` : ''}</button></li>`).join('')
+            : `<li class="px-3 py-2.5 text-[14px] text-slate-500">Nessuna via così a ${esc(a.comune)}. Controlla il nome o il comune.</li>`;
+        ul.classList.remove('hidden');
+    }, 600);
+};
+window.addPickStreet = function (i) {
+    const a = addState, sg = a.suggestions[i];
+    a.street = sg; a.streetInput = sg.name; a.fromGps = false; a.gpsPos = null; a.suggestions = [];
+    a.name = $('addName').value; a.number = $('addNumber').value;
+    renderAddSheet();
+};
+// "Sono alla pompa": posizione del telefono → comune e via; la pompa va esattamente lì
+window.addUseMyPosition = function () {
+    if (!navigator.geolocation) return toast('Questo browser non può dare la posizione.');
+    const btn = $('addGpsBtn'); btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1.5"></i>Cerco la tua posizione…';
+    const done = () => { if ($('addGpsBtn')) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-location-crosshairs mr-1.5"></i>Sono alla pompa: usa la mia posizione'; } };
+    navigator.geolocation.getCurrentPosition(async (p) => {
+        const pos = { lat: p.coords.latitude, lng: p.coords.longitude };
+        try {
+            const rev = await nominatim(`reverse?format=jsonv2&zoom=18&addressdetails=1&lat=${pos.lat}&lon=${pos.lng}`);
+            const ad = rev?.address || {};
+            const c = findComune(placeOf(ad));
+            if (!c) { toast('Sei fuori dalla provincia di Benevento: qui si segnalano solo pompe del Sannio.'); return; }
+            if (!ad.road) { toast('Non trovo la via qui: sceglila a mano.'); return; }
+            const a = addState;
+            a.name = $('addName').value;
+            Object.assign(a, { comune: c.nome, street: { name: ad.road, suburb: ad.suburb || ad.hamlet || '', lat: pos.lat, lng: pos.lng }, streetInput: ad.road, number: ad.house_number || '', fromGps: true, gpsPos: pos, suggestions: [] });
+            renderAddSheet();
+            toast(`Trovato: ${ad.road}, ${c.nome}`);
+        } catch (e) { toast('Ricerca non riuscita: riprova o scegli a mano.'); }
+        finally { done(); }
+    }, (err) => { done(); toast(err.code === 1 ? 'Accesso alla posizione negato: scegli comune e via a mano.' : 'Non riesco a trovarti: scegli comune e via a mano.'); },
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+};
+
+window.addGoStep2 = async function () {
+    const a = addState;
+    a.name = $('addName').value.trim(); a.number = $('addNumber').value.trim();
+    if (!addStep1Ready()) return;
+    const btn = $('addNextBtn'); btn.disabled = true; btn.textContent = 'Cerco la pompa…';
     try {
-        const hits = await nominatim(`search?format=jsonv2&limit=1&countrycodes=it&q=${encodeURIComponent(`${a.address}, ${a.comune}`)}`);
-        if (!hits || !hits[0]) { toast('Indirizzo non trovato: controlla via e comune.'); return; }
-        let pos = { lat: Number(hits[0].lat), lng: Number(hits[0].lon) };
-        // il distributore vero vicino (per nome o marchio) è più preciso della via
-        const d = 0.006, vb = `${pos.lng - d},${pos.lat + d},${pos.lng + d},${pos.lat - d}`;
-        const fuel = await nominatim(`search?format=jsonv2&limit=5&countrycodes=it&bounded=1&viewbox=${vb}&q=${encodeURIComponent(a.name.split(' - ')[0])}`).catch(() => null);
-        const f = (fuel || []).find(h => h.category === 'amenity' && h.type === 'fuel');
-        if (f) pos = { lat: Number(f.lat), lng: Number(f.lon) };
-        const rev = await nominatim(`reverse?format=jsonv2&zoom=16&lat=${pos.lat}&lon=${pos.lng}`).catch(() => null);
+        let pos = a.gpsPos || { lat: a.street.lat, lng: a.street.lng };
+        if (!a.gpsPos && a.number) {
+            const h = await nominatim(`search?format=jsonv2&addressdetails=1&limit=3&countrycodes=it&street=${encodeURIComponent(a.number + ' ' + a.street.name)}&city=${encodeURIComponent(a.comune)}`).catch(() => null);
+            const hit = (h || []).find(x => comuneKey(placeOf(x.address || {})) === comuneKey(a.comune));
+            if (hit) pos = { lat: Number(hit.lat), lng: Number(hit.lon) };
+        }
+        // il distributore vero lì vicino (per nome o marchio) è più preciso della via
+        if (!a.gpsPos) {
+            const dd = 0.006, vb = `${pos.lng - dd},${pos.lat + dd},${pos.lng + dd},${pos.lat - dd}`;
+            for (const term of [...new Set([a.name.split(' - ')[0], a.brand === 'Pompa Bianca' ? '' : a.brand].filter(t => t && t.length >= 2))]) {
+                const f = ((await nominatim(`search?format=jsonv2&limit=5&countrycodes=it&bounded=1&viewbox=${vb}&q=${encodeURIComponent(term)}`).catch(() => null)) || []).find(h => h.category === 'amenity' && h.type === 'fuel');
+                if (f) { pos = { lat: Number(f.lat), lng: Number(f.lon) }; break; }
+            }
+        }
+        const c = findComune(a.comune);
+        if (km(pos, c) > MAX_KM_FROM_COMUNE) { toast(`La posizione trovata non è a ${a.comune}: controlla comune e via.`); return; }
+        const rev = await nominatim(`reverse?format=jsonv2&zoom=16&addressdetails=1&lat=${pos.lat}&lon=${pos.lng}`).catch(() => null);
         const ad = rev?.address || {};
-        a.zone = (ad.suburb || ad.quarter || ad.neighbourhood || a.comune).slice(0, 40);
-        a.pos = pos; a.step = 2;
+        a.zone = (ad.suburb || ad.quarter || ad.neighbourhood || ad.hamlet || a.comune).slice(0, 40);
+        a.pos = pos; a.anchor = pos; a.step = 2; a.dupConfirmed = false;
         renderAddSheet();
     } catch (e) {
         toast('Ricerca non riuscita: riprova tra poco.');
-    } finally { if ($('addFindBtn')) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-map-location-dot mr-1.5"></i>Trova sulla mappa'; } }
+    } finally { if ($('addNextBtn')) { btn.disabled = !addStep1Ready(); btn.textContent = 'Continua'; } }
 };
+
 window.addSave = async function () {
     const a = addState, btn = $('addSaveBtn');
     btn.disabled = true; btn.textContent = 'Salvataggio…';
-    const v = a.status ? { status: a.status, fuels: a.status === 'closed' ? { benzina: false, diesel: false, gpl: false } : { benzina: null, diesel: null, gpl: null }, queueLevel: a.status === 'closed' ? 'Nessuna' : 'Non indicata', note: '' } : null;
+    const v = a.status ? {
+        status: a.status,
+        fuels: a.status === 'closed' ? { benzina: false, diesel: false, gpl: false } : { ...a.fuels },
+        queueLevel: a.status === 'closed' ? 'Nessuna' : 'Non indicata', note: '',
+    } : null;
     try {
-        const data = await apiPost('/api/stations', { station: { name: a.name, brand: a.brand, address: a.address, zone: a.zone || a.comune, comune: /^benevento$/i.test(a.comune) ? '' : a.comune, lat: a.pos.lat, lng: a.pos.lng }, vote: v });
+        const address = `${a.street.name}${a.number ? ' ' + a.number : ''}`.slice(0, 70);
+        const data = await apiPost('/api/stations', { station: { name: a.name, brand: a.brand, address, zone: a.zone || a.comune, comune: a.comune, lat: a.pos.lat, lng: a.pos.lng }, vote: v });
         const st = fromApi(data.station);
         stations = [st, ...stations.filter(s => s.id !== st.id)];
         toast('Grazie! Pompa aggiunta alla mappa.');
@@ -525,6 +662,12 @@ async function loadNews() {
     } catch (e) { $('newsCount').textContent = ''; }
 }
 
+// ---------- comuni della provincia (public/comuni.json, lo stesso elenco usato dal server) ----------
+let COMUNI = [];
+const comuneKey = (t) => (t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[’`]/g, "'").replace(/\s+/g, ' ').trim();
+const findComune = (name) => COMUNI.find(c => comuneKey(c.nome) === comuneKey(name));
+async function loadComuni() { try { COMUNI = await (await fetch('/comuni.json')).json(); } catch (e) { console.warn('Elenco comuni non disponibile', e); } }
+
 // ---------- avvio ----------
 (async function start() {
     try { initMap(); } catch (e) { console.error('Mappa non avviata', e); }
@@ -534,4 +677,5 @@ async function loadNews() {
     let timer = setInterval(load, POLL_MS);
     document.addEventListener('visibilitychange', () => { clearInterval(timer); if (!document.hidden) { load(); timer = setInterval(load, POLL_MS); } });
     loadNews();
+    loadComuni();
 })();
