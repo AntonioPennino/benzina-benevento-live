@@ -186,10 +186,16 @@ function renderMarkers() {
     Object.values(markers).forEach(m => map.removeLayer(m));
     markers = {};
     const ids = new Set(visibleStations().map(s => s.id));
-    stations.forEach(st => {
+    // pompe quasi nello stesso punto (meno di 40 m): i segnaposto si affiancano di qualche pixel,
+    // altrimenti quella sotto non si può toccare (es. Eni e "Via Napoli")
+    const SHIFTS = [[20, 0], [-20, 0], [0, -20], [0, 20], [20, -20], [-20, 20]];
+    const placed = [];
+    const shiftOf = (st) => { const twins = placed.filter(p => km(p, st) < 0.04).length; placed.push(st); return twins ? SHIFTS[(twins - 1) % SHIFTS.length] : [0, 0]; };
+    stations.slice().sort((a, b) => a.id.localeCompare(b.id)).forEach(st => {
         if (!ids.has(st.id)) return;
         const sel = openId === st.id, stale = isStale(st);
-        const icon = L.divIcon({ className: '', html: `<div class="pin pin-${st.status}${stale ? ' pin-stale' : ''}${sel ? ' pin-selected' : ''}"><i class="fa-solid ${STATUS[st.status].icon}"></i></div>`, iconSize: [34, 34], iconAnchor: [17, 17] });
+        const [dx, dy] = shiftOf(st);
+        const icon = L.divIcon({ className: '', html: `<div class="pin pin-${st.status}${stale ? ' pin-stale' : ''}${sel ? ' pin-selected' : ''}"><i class="fa-solid ${STATUS[st.status].icon}"></i></div>`, iconSize: [34, 34], iconAnchor: [17 - dx, 17 - dy] });
         const z = sel ? 1000 : st.status === 'unverified' ? 0 : stale ? 100 : 500;
         markers[st.id] = L.marker([st.lat, st.lng], { icon, zIndexOffset: z, title: st.name, keyboard: true }).on('click', () => openStation(st.id)).addTo(map);
     });
