@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Benzina Benevento Live · nuova interfaccia (prova)</title>
+    <meta name="robots" content="noindex">
+    <meta name="theme-color" content="#0F172A">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <!-- PROTOTIPO della nuova interfaccia: usa le stesse API del sito (/api/stations, /api/vote) -->
+    <script>window.__stationsRequest = fetch('/api/stations', { cache: 'no-store' }).catch(function () { return null; });</script>
+    <link rel="stylesheet" href="/styles.css?v=dev">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://tile.openstreetmap.org" crossorigin>
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400..800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
+    <script src="/vendor/leaflet/leaflet.js" defer></script>
+    <style>
+        body { font-family: 'Inter', system-ui, sans-serif; }
+        /* telefono: comandi, mappa, elenco uno sotto l'altro; computer: elenco a sinistra, mappa a destra */
+        /* minmax(0,1fr): la riga dei filtri scorre di lato invece di allargare la pagina */
+        .layout { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "controls" "map" "list"; }
+        .layout > * { min-width: 0; }
+        .area-controls { grid-area: controls; } .area-map { grid-area: map; } .area-list { grid-area: list; }
+        .area-map { height: 44vh; min-height: 260px; }
+        @media (min-width: 1024px) {
+            .layout { grid-template-columns: 420px minmax(0, 1fr); grid-template-rows: auto 1fr; grid-template-areas: "controls map" "list map"; height: calc(100vh - 56px); }
+            .area-map { height: auto; }
+            .area-list { overflow-y: auto; }
+        }
+        .leaflet-container { font-family: inherit; }
+        /* segnaposto: colore + simbolo (si capisce anche senza distinguere i colori) */
+        .pin { width: 34px; height: 34px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; color: #fff; border: 3px solid #fff; box-shadow: 0 4px 12px rgba(15,23,42,.3); font-size: 14px; transition: transform .15s; }
+        .pin-available { background: #059669; } .pin-limited { background: #D97706; } .pin-closed { background: #DC2626; } .pin-unverified { background: #64748B; }
+        .pin-stale { opacity: .55; border-style: dashed; }
+        .pin-selected { transform: scale(1.3); box-shadow: 0 0 0 4px rgba(250,204,21,.9), 0 6px 16px rgba(15,23,42,.35); }
+        .pin-me { width: 18px; height: 18px; border-radius: 9999px; background: #2563EB; border: 3px solid #fff; box-shadow: 0 0 0 6px rgba(37,99,235,.25); }
+        /* scheda in basso (telefono) / pannello laterale (computer) */
+        #sheet { transition: transform .25s ease; }
+        #sheet.closed { transform: translateY(105%); }
+        @media (min-width: 1024px) { #sheet.closed { transform: translateX(110%); } }
+        .no-scrollbar::-webkit-scrollbar { display: none; } .no-scrollbar { scrollbar-width: none; }
+        .pb-safe { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-900 antialiased">
+
+    <header class="sticky top-0 z-30 bg-slate-900 text-white">
+        <div class="max-w-7xl mx-auto px-4 h-14 flex items-center gap-3">
+            <span class="w-9 h-9 rounded-xl bg-amber-400 text-slate-900 flex items-center justify-center shrink-0"><i class="fa-solid fa-gas-pump"></i></span>
+            <div class="min-w-0 leading-tight">
+                <div class="font-extrabold text-[15px] truncate">Benzina Benevento <span class="text-amber-400">Live</span></div>
+                <div id="liveStatus" class="text-[12px] text-slate-300 truncate"><span class="inline-block w-1.5 h-1.5 rounded-full bg-slate-400 mr-1 align-middle"></span>Caricamento…</div>
+            </div>
+            <button onclick="openHowItWorks()" class="ml-auto hidden sm:inline-flex items-center gap-1.5 px-3 h-10 rounded-xl text-[13px] font-semibold text-slate-200 hover:bg-slate-800"><i class="fa-regular fa-circle-question"></i> Come funziona</button>
+            <button onclick="openAddStation()" class="ml-auto sm:ml-0 inline-flex items-center gap-1.5 px-3.5 h-10 rounded-xl bg-amber-400 text-slate-900 text-[14px] font-bold hover:bg-amber-300"><i class="fa-solid fa-plus"></i> <span class="sm:hidden">Segnala</span><span class="hidden sm:inline">Segnala pompa</span></button>
+        </div>
+    </header>
+
+    <div id="alertStrip" class="bg-amber-100 border-b border-amber-200 text-amber-950 text-[13px]">
+        <div class="max-w-7xl mx-auto px-4 py-2 flex items-start gap-2">
+            <i class="fa-solid fa-triangle-exclamation mt-0.5 text-amber-600"></i>
+            <p class="flex-1">Sciopero dei TIR: lo stato delle pompe lo segnalano i cittadini. <button onclick="openHowItWorks()" class="font-bold underline">Come funziona</button></p>
+            <button onclick="this.closest('#alertStrip').remove()" aria-label="Chiudi avviso" class="w-8 h-8 -m-1.5 rounded-lg hover:bg-amber-200 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+    </div>
+
+    <main class="layout max-w-7xl mx-auto lg:px-4 lg:gap-x-4">
+        <!-- riepilogo (è anche il filtro), ricerca, vicino a me -->
+        <section class="area-controls bg-white lg:bg-transparent px-4 pt-3 pb-3 lg:px-0 space-y-2.5">
+            <div id="summary" class="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 lg:mx-0 lg:px-0 lg:flex-wrap" role="group" aria-label="Filtra per stato"></div>
+            <div class="flex gap-2">
+                <label class="relative flex-1 min-w-0">
+                    <span class="sr-only">Cerca</span>
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                    <input id="search" type="search" oninput="onSearch(this.value)" placeholder="Cerca via o marchio" class="w-full h-11 pl-9 pr-3 rounded-xl bg-slate-100 lg:bg-white border border-slate-200 text-[15px] focus:outline-none focus:ring-2 focus:ring-amber-400">
+                </label>
+                <button id="nearBtn" onclick="toggleNearMe()" class="shrink-0 inline-flex items-center gap-1.5 px-3.5 h-11 rounded-xl border border-slate-300 bg-white text-[14px] font-bold text-slate-800 hover:bg-slate-50"><i class="fa-solid fa-location-crosshairs text-blue-600"></i> Vicino a me</button>
+            </div>
+        </section>
+
+        <!-- mappa -->
+        <!-- isolate: i livelli interni della mappa (z-index 400+) restano sotto la scheda -->
+        <section class="area-map relative isolate lg:rounded-2xl overflow-hidden lg:my-3 bg-slate-200">
+            <div id="map" class="absolute inset-0"></div>
+            <div class="absolute left-2 bottom-2 z-[500] bg-white/95 rounded-xl shadow px-2.5 py-1.5 text-[12px] flex flex-wrap gap-x-3 gap-y-1 max-w-[calc(100%-1rem)]">
+                <span><i class="fa-solid fa-check text-emerald-600"></i> Aperta</span>
+                <span><i class="fa-solid fa-hourglass-half text-amber-600"></i> Code</span>
+                <span><i class="fa-solid fa-xmark text-red-600"></i> Esaurita</span>
+                <span><i class="fa-solid fa-question text-slate-500"></i> Nessuna notizia</span>
+                <span class="text-slate-500">tratteggiata = notizia vecchia</span>
+            </div>
+        </section>
+
+        <!-- elenco -->
+        <section class="area-list bg-white lg:rounded-2xl lg:mb-3">
+            <div class="px-4 py-2.5 border-b border-slate-100 flex items-center justify-between text-[13px] text-slate-500">
+                <span id="listTitle">Distributori</span>
+                <span id="listOrder"></span>
+            </div>
+            <div id="list" role="list"></div>
+            <details id="news" class="border-t border-slate-100">
+                <summary class="px-4 py-3 text-[14px] font-semibold text-slate-700 cursor-pointer"><i class="fa-regular fa-newspaper mr-1.5"></i>Notizie dalla stampa locale <span id="newsCount" class="text-slate-400"></span></summary>
+                <ul id="newsList" class="px-4 pb-4 space-y-2.5 text-[14px]"></ul>
+            </details>
+        </section>
+    </main>
+
+    <!-- scheda della pompa / nuova pompa / come funziona -->
+    <div id="sheetBackdrop" onclick="closeSheet()" class="fixed inset-0 z-40 bg-slate-900/40 hidden lg:hidden"></div>
+    <aside id="sheet" class="closed fixed z-50 inset-x-0 bottom-0 max-h-[90vh] overflow-y-auto bg-white rounded-t-3xl shadow-2xl lg:inset-auto lg:right-6 lg:top-20 lg:bottom-6 lg:w-[420px] lg:max-h-none lg:rounded-3xl" role="dialog" aria-modal="true" aria-labelledby="sheetTitle"></aside>
+
+    <div id="toast" class="fixed z-[60] left-1/2 -translate-x-1/2 bottom-6 hidden items-center gap-3 bg-slate-900 text-white pl-4 pr-2 py-2 rounded-2xl shadow-xl text-[14px] max-w-[calc(100%-2rem)]" role="status">
+        <span id="toastText"></span>
+        <button id="toastAction" class="hidden px-3 h-9 rounded-xl font-bold text-amber-400 hover:bg-slate-800"></button>
+    </div>
+
+    <script src="/nuova/regole.js?v=dev" defer></script>
+    <script src="/nuova/app.js?v=dev" defer></script>
+</body>
+</html>
