@@ -1,7 +1,6 @@
 # Analisi UX e proposta di nuova interfaccia
 
-Ottobre 2026. Prototipo funzionante: pagina `/nuova/` sul ramo `nuova-ui`
-(anteprima: https://nuova-ui.benzina-benevento-live.pages.dev/nuova/, database di prova).
+Ottobre 2026. La proposta è stata provata come prototipo (ramo `nuova-ui`) ed è diventata l'interfaccia del sito il 23 ottobre 2026.
 
 ## Chi usa il sito e per cosa
 L'utente tipico è una persona di Benevento, **dal telefono**, spesso **in macchina o di fretta**, durante una crisi di carburante. Ha due bisogni, in quest'ordine:
@@ -47,7 +46,7 @@ Marchio e quartiere obbligatori, "Nome / Via" e "Indirizzo" che si sovrappongono
 - Nessuna spiegazione di come si decide lo stato (45 minuti, parità al peggiore).
 - Il tasto "indietro" del telefono esce dal sito invece di chiudere la scheda.
 
-## Proposta (prototipo `/nuova/`)
+## Proposta (oggi online)
 
 **Principio**: prima la risposta ("dove c'è benzina, quanto è fresca la notizia"), poi l'azione ("segnala con un tocco"), il resto dopo.
 
@@ -65,7 +64,6 @@ Marchio e quartiere obbligatori, "Nome / Via" e "Indirizzo" che si sovrappongono
 | Nuova pompa | Facile ma con dati controllati. Passo 1: **"Sono alla pompa: usa la mia posizione"** (trova comune e via) oppure **comune a tendina** (i 78 comuni della provincia) + **via scelta tra quelle vere** suggerite mentre scrivi + numero civico facoltativo; **nome e marchio obbligatori**. Passo 2: mappa con il segnaposto trascinabile solo vicino alla via, avviso **"Forse c'è già"** che blocca finché non confermi "è un'altra pompa", "Com'è adesso?" (anche "Non so") e carburanti. Il server ripete i controlli: comune della provincia, posizione entro 12 km dal comune, nome e via sensati. |
 | Dettagli | Niente ID nel fondo pagina; "Come funziona" spiega in 6 righe come si decide lo stato; testi ≥ 13 px, pulsanti ≥ 44 px. |
 
-## Cosa resta da decidere prima di passarla sul sito
+## Cosa resta da decidere
 - Se tenere la nota libera nel voto (oggi quasi nessuno la scrive).
 - Se aggiungere "Segnala un errore" sulle pompe (nome o posizione sbagliati) invece di farle riaggiungere.
-- Il prototipo ha una copia della regola dei voti (`public/nuova/regole.js`): passando alla nuova interfaccia va tenuta una sola copia.

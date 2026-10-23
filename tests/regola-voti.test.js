@@ -1,7 +1,7 @@
-// Verifica la regola dei voti di public/app.js su casi d'esempio: npm test
+// Verifica la regola dei voti di public/regole.js su casi d'esempio: npm test
 const path = require('path');
 const fs = require('fs');
-const src = fs.readFileSync(path.join(__dirname, '..', 'public', 'app.js'), 'utf8');
+const src = fs.readFileSync(path.join(__dirname, '..', 'public', 'regole.js'), 'utf8');
 const start = src.indexOf('const VOTE_WINDOW_MS');
 const end = src.indexOf('// ultimo voto arrivato');
 const { splitVotes, deriveFromVotes } = new Function(src.slice(start, end) + '; return { splitVotes, deriveFromVotes };')();

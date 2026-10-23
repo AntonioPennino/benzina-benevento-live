@@ -1,5 +1,4 @@
-// Regola dei voti, copiata da public/app.js per il prototipo della nuova interfaccia.
-// Se il prototipo diventa il sito, va tenuta una sola copia.
+// Regola dei voti: da qui la pagina (app.js) calcola lo stato di ogni pompa. tests/regola-voti.test.js la verifica.
 
 // Regola dei voti:
 // - vince lo stato con più voti "in corso"; a parità vince il peggiore (Esaurita > Limitata > Aperta),

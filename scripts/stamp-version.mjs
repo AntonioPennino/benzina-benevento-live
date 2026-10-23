@@ -1,12 +1,11 @@
-// Dà ad app.js e styles.css un numero di versione nuovo in index.html (?v=...), così i browser
+// Dà ad app.js, regole.js e styles.css un numero di versione nuovo in index.html (?v=...), così i browser
 // scaricano subito la versione appena pubblicata invece di usare quella in cache (Cloudflare
 // la tiene fino a 4 ore). Uso: node scripts/stamp-version.mjs [versione] | --restore
 import { readFileSync, writeFileSync } from 'node:fs'
 
 const arg = process.argv[2]
 const version = arg === '--restore' ? 'dev' : (arg || Date.now().toString(36))
-// pagina del sito e, se c'è, prototipo della nuova interfaccia
-for (const [path, required] of [['../public/index.html', true], ['../public/nuova/index.html', false]]) {
+for (const [path, required] of [['../public/index.html', true]]) {
   const file = new URL(path, import.meta.url)
   let html
   try { html = readFileSync(file, 'utf8') } catch (e) { if (required) throw e; continue }
