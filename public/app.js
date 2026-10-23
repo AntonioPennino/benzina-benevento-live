@@ -17,22 +17,6 @@
             { id: "bn-station-13", name: "Distributore C.da Piano Cappelle", brand: "Pompa Bianca", address: "Via Valfortore / C.da Piano Cappelle", zone: "C.da Piano Cappelle / Est", lat: 41.10367, lng: 14.82453, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION }
         ];
 
-        // Correzioni ai distributori aggiunti dagli utenti: posizioni verificate (distributori reali su
-        // OpenStreetMap, o la via quando il distributore non c'è) ed eventuali nome/marchio/indirizzo.
-        // Hanno la precedenza sui dati salvati. Per correggere una pompa basta aggiungere qui il suo id.
-        const STATION_FIXES = {
-            "bn-custom-1792675781566": { lat: 41.15123, lng: 14.77953 }, // Beneco - Via dei Liguri Bebiani
-            "bn-custom-1792607627389": { lat: 41.11268, lng: 14.80072 }, // Sudpetroli - Via Fratelli Rosselli (via)
-            "bn-custom-1792688137608": { lat: 41.14487, lng: 14.76673, name: "Esso - Rotonda dei Pentri", brand: "Esso", address: "Rotonda dei Pentri (Rotonda di Padre Pio)" },
-            "bn-custom-1792687945441": { lat: 41.12129, lng: 14.76954 }, // Via Napoli (via)
-            "bn-custom-1792688909975": { lat: 41.31061, lng: 14.87894 }  // Q8 - San Marco dei Cavoti (paese)
-        };
-
-        // Voci da non mostrare (aggiunte per errore o doppioni): restano nel database ma la pagina le ignora.
-        const HIDDEN_STATIONS = new Set([
-            "bn-custom-1792679821068" // "Benevento": nome e indirizzo "Benevento", nessun distributore reale
-        ]);
-
         const ZONE_COORDINATES_MAP = {
             "Rione Libertà": { lat: 41.1260, lng: 14.7640 },
             "Centro / Mellusi": { lat: 41.1305, lng: 14.7850 },
@@ -45,17 +29,6 @@
             "C.da Piano Cappelle / Est": { lat: 41.1185, lng: 14.8040 }
         };
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyAGJQ8nWcKiH7tZcV3T7Am8rUEqo7YYUA4",
-            authDomain: "pompe-di-benzina---benevento.firebaseapp.com",
-            projectId: "pompe-di-benzina---benevento",
-            storageBucket: "pompe-di-benzina---benevento.firebasestorage.app",
-            messagingSenderId: "623891714489",
-            appId: "1:623891714489:web:efc563c3e2f93d42f8e668",
-            measurementId: "G-CS138XW9VK"
-        };
-        const appId = 'benzina-benevento-live';
-
         let stationsData = INITIAL_BENEVENTO_STATIONS.map(s => ({ ...s }));
         let currentFilterStatus = 'all';
         let currentSearchQuery = '';
@@ -65,9 +38,9 @@
 
         let leafletMap = null;
         let leafletMarkers = {};
-        let db = null;
-        let auth = null;
-        let currentUser = null;
+        let myVoterId = null;   // id pubblico di questo dispositivo nei voti
+        let dataLoaded = false;
+        let pendingVotes = 0;   // voti in corso di salvataggio: intanto l'aggiornamento periodico aspetta
 
         function esc(v) {
             return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -82,14 +55,6 @@
             }
         }
 
-
-        function parseFuels(raw) {
-            const empty = { benzina: null, diesel: null, gpl: null };
-            try {
-                const f = typeof raw === 'string' ? JSON.parse(raw) : raw;
-                return f && typeof f === 'object' ? f : empty;
-            } catch (e) { return empty; }
-        }
 
         function formatRelativeTime(timestampMs) {
             if (!timestampMs) return 'In attesa del primo flag';
@@ -110,106 +75,76 @@
             return `alle ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
         }
 
-        async function initFirebaseAndSync() {
-            try {
-                if (!window.firebase || !firebase.apps.length) {
-                    firebase.initializeApp(firebaseConfig);
-                }
-                db = firebase.firestore();
-                auth = firebase.auth();
+        // ---- Dati: API del sito (Cloudflare D1, functions/api). La pagina chiede l'elenco ogni POLL_MS
+        // mentre è visibile; si ferma quando la scheda è nascosta, per non consumare richieste. ----
+        const POLL_MS = 20000;
+        let pollTimer = null, loadingStations = false, secretCache = null;
 
-                try {
-                    const userCred = await auth.signInAnonymously();
-                    currentUser = userCred.user;
-                } catch (authError) {
-                    currentUser = { uid: localDeviceId() };
-                }
-
-                document.getElementById('footerUserId').textContent = currentUser?.uid || 'anonimo-bn';
-
-                const stationsColRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('stations');
-
-                stationsColRef.onSnapshot(async (snapshot) => {
-                    if (snapshot.empty) {
-                        // Uno snapshot vuoto "dalla cache" arriva quando il server non risponde (rete assente,
-                        // quota esaurita): non vuol dire che il database sia vuoto. In quel caso non si scrive nulla.
-                        if (snapshot.metadata.fromCache) {
-                            updateConnectionUI(false, "Database non raggiungibile: riprovo…");
-                            return;
-                        }
-                        console.warn("Database vuoto! Tento il caricamento automatico...");
-                        await seedInitialStationsToFirestore();
-                        return;
-                    }
-                    updateConnectionUI(true, "Sincronizzazione Cloud Live attiva");
-
-
-                    const loadedStations = [];
-                    snapshot.forEach((docSnap) => {
-                        // ignora documenti con id anomali (gli id finiscono in attributi HTML)
-                        if (!/^bn-(station|custom)-\d+$/.test(docSnap.id)) return;
-                        if (HIDDEN_STATIONS.has(docSnap.id)) return;
-                        const data = docSnap.data();
-                        const seedRef = INITIAL_BENEVENTO_STATIONS.find(i => i.id === docSnap.id) || {};
-                        // per i distributori iniziali e per quelli corretti valgono posizione (e correzioni) scritte nel codice
-                        const position = STATION_FIXES[docSnap.id] || (seedRef.id ? { lat: seedRef.lat, lng: seedRef.lng } : {});
-                        
-                        loadedStations.push(normalizeStation({
-                            ...seedRef,
-                            ...data,
-                            ...position,
-                            id: docSnap.id,
-                            status: ['available', 'limited', 'closed', 'unverified'].includes(data.status) ? data.status : 'unverified',
-                            fuels: parseFuels(data.fuels)
-                        }));
-                    });
-
-                    if (loadedStations.length > 0) {
-                        stationsData = loadedStations;
-                    }
-                    renderAll();
-                }, (error) => {
-                    console.error("Errore sincronizzazione Firestore:", error);
-                    updateConnectionUI(false, "Modalità Locale (Verificare Regole Firebase)");
-                    renderAll();
-                });
-
-            } catch (err) {
-                console.warn("Uso dati locali di riserva.", err);
-                updateConnectionUI(false, "Modalità Locale");
-                document.getElementById('footerUserId').textContent = 'locale-bn';
-                renderAll();
+        // codice segreto del dispositivo (resta sul telefono); nei voti compare solo il suo hash
+        function voterSecret() {
+            if (secretCache) return secretCache;
+            try { secretCache = localStorage.getItem('bn-voter-secret'); } catch (e) {}
+            if (!secretCache || !/^[0-9a-f]{64}$/.test(secretCache)) {
+                secretCache = [...crypto.getRandomValues(new Uint8Array(32))].map(b => b.toString(16).padStart(2, '0')).join('');
+                try { localStorage.setItem('bn-voter-secret', secretCache); } catch (e) {}
             }
+            return secretCache;
+        }
+        // stesso calcolo di voterIdFromSecret in lib/benzina.ts
+        async function computeVoterId() {
+            const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('voter:' + voterSecret()));
+            return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 24);
         }
 
-        async function seedInitialStationsToFirestore() {
-            if (!db) return;
+        // distributore come arriva dall'API → con lo stato ricalcolato dai voti
+        function stationFromApi(s) {
+            return normalizeStation({ ...s, status: 'unverified', lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: 'Da verificare', lastNote: '' });
+        }
+
+        async function apiPost(url, body) {
+            let res, data = {};
             try {
-                // crea solo i distributori che mancano: una transazione legge dal server, quindi
-                // non sovrascrive mai voti esistenti né accoda scritture quando si è offline
-                for (const st of INITIAL_BENEVENTO_STATIONS) {
-                    const docRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('stations').doc(st.id);
-                    await db.runTransaction(async (tx) => {
-                        const snap = await tx.get(docRef);
-                        if (snap.exists) return;
-                        tx.set(docRef, { ...st, seedVersion: SEED_VERSION, lastReporterId: st.isPressSource ? 'fonte-stampa-verificata' : null });
-                    });
-                }
-                showToast("Database Popolato!", "Caricati i 14 distributori di Benevento su Firebase.");
+                res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, secret: voterSecret() }) });
+                data = await res.json().catch(() => ({}));
             } catch (e) {
-                console.error("Errore salvataggio dati iniziali:", e);
-                showToast("Errore Scrittura Firebase", "Controlla le regole di sicurezza Firestore.");
+                throw new Error('Connessione non riuscita. Controlla la rete e riprova.');
+            }
+            if (!res.ok) throw new Error(data.error || 'Errore del server. Riprova tra poco.');
+            return data;
+        }
+
+        async function loadStationsFromApi() {
+            if (loadingStations || pendingVotes) return;
+            loadingStations = true;
+            try {
+                const res = await fetch('/api/stations', { cache: 'no-store' });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !Array.isArray(data.stations)) throw new Error(data.error || `HTTP ${res.status}`);
+                if (pendingVotes) return;
+                // gli id finiscono in attributi HTML: si accettano solo quelli nel formato previsto
+                stationsData = data.stations.filter(st => /^bn-(station|custom)-\d+$/.test(st.id)).map(stationFromApi);
+                dataLoaded = true;
+                updateConnectionUI(true, "Dati condivisi in tempo reale");
+                renderAll();
+            } catch (err) {
+                console.warn('Elenco distributori non aggiornato', err);
+                updateConnectionUI(false, dataLoaded ? "Aggiornamento non riuscito: riprovo…" : "Database non raggiungibile: riprovo…");
+            } finally {
+                loadingStations = false;
             }
         }
 
-        window.forceSeedDatabase = async function() {
-            if (!db) {
-                alert("Connessione a Firebase non ancora pronta. Riprova tra 2 secondi.");
-                return;
-            }
-            showToast("Caricamento in corso...", "Invio delle 14 pompe a Firebase...");
-            await seedInitialStationsToFirestore();
-        };
+        async function initDataSync() {
+            try { myVoterId = await computeVoterId(); } catch (e) { console.warn('Id del dispositivo non disponibile', e); }
+            document.getElementById('footerUserId').textContent = myVoterId || 'non disponibile';
+            await loadStationsFromApi();
+            const schedule = () => {
+                clearInterval(pollTimer);
+                pollTimer = document.hidden ? null : setInterval(loadStationsFromApi, POLL_MS);
+            };
+            document.addEventListener('visibilitychange', () => { if (!document.hidden) loadStationsFromApi(); schedule(); });
+            schedule();
+        }
 
         function updateConnectionUI(isOnline, text) {
             const dot = document.getElementById('connectionDot');
@@ -558,19 +493,8 @@
 
 
         // ---- Segnalazioni: una per persona per distributore; ripremere lo stesso stato la rimuove ----
-        // se il login anonimo non riesce, ogni dispositivo usa un proprio id (prima era uno solo per tutti,
-        // e chi votava lo stesso stato toglieva il voto di un altro)
-        function localDeviceId() {
-            let id = null;
-            try { id = localStorage.getItem('bn-device-id'); } catch (e) {}
-            if (!id) {
-                id = 'dispositivo-' + Math.random().toString(36).slice(2, 12) + Date.now().toString(36);
-                try { localStorage.setItem('bn-device-id', id); } catch (e) {}
-            }
-            return id;
-        }
-        function myUid() { return currentUser?.uid || localDeviceId(); }
-        function myVoteOf(st) { return st && st.votes ? (st.votes[myUid()] || null) : null; }
+        function myUid() { return myVoterId; }
+        function myVoteOf(st) { return st && st.votes && myVoterId ? (st.votes[myVoterId] || null) : null; }
 
         // Regola dei voti:
         // - vince lo stato con più voti "in corso"; a parità vince il peggiore (Esaurita > Limitata > Aperta),
@@ -667,30 +591,18 @@
             return { ...st, ...deriveFromVotes(votes, legacy), votes, legacy };
         }
 
-        // true se il voto è stato salvato; altrimenti avvisa chi ha votato
-        async function persistVote(stationId, uid, vote) {
-            const notSaved = (msg) => { showToast('Voto NON salvato', msg); return false; };
-            if (!db) return notSaved('Il sito non è collegato al database. Ricarica la pagina e riprova.');
-            const ref = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('stations').doc(stationId);
+        // true se il voto è stato salvato (la pagina prende i voti aggiornati dalla risposta);
+        // altrimenti avvisa chi ha votato
+        async function persistVote(stationId, vote) {
             try {
-                await db.runTransaction(async (tx) => {
-                    const snap = await tx.get(ref);
-                    if (!snap.exists) throw Object.assign(new Error('distributore non trovato'), { code: 'not-found' });
-                    const data = snap.data();
-                    data.fuels = parseFuels(data.fuels);
-                    const next = applyVoteToStation(data, uid, vote);
-                    tx.update(ref, {
-                        status: next.status, lastUpdated: next.lastUpdated, confirmations: next.confirmations,
-                        fuels: next.fuels, queueLevel: next.queueLevel, lastNote: next.lastNote, lastReporterId: next.lastReporterId,
-                        isPressSource: false, seedVersion: SEED_VERSION, votes: next.votes, legacy: next.legacy
-                    });
-                });
+                const data = await apiPost('/api/vote', { stationId, vote });
+                const i = stationsData.findIndex(s => s.id === stationId);
+                if (i !== -1 && data.station) { stationsData[i] = stationFromApi(data.station); renderAll(); }
                 return true;
             } catch (e) {
                 console.error(e);
-                return notSaved(e.code === 'resource-exhausted'
-                    ? 'Il database ha raggiunto il limite giornaliero. Riprova più tardi.'
-                    : 'Connessione al database non riuscita. Riprova tra poco.');
+                showToast('Voto NON salvato', e.message);
+                return false;
             }
         }
 
@@ -698,12 +610,15 @@
             const i = stationsData.findIndex(s => s.id === stationId);
             if (i === -1) return;
             const uid = myUid();
+            if (!uid) { showToast('Voto NON salvato', 'Il tuo dispositivo non è ancora pronto: ricarica la pagina e riprova.'); return; }
             const before = stationsData[i];
             stationsData[i] = applyVoteToStation(before, uid, vote);
             renderAll();
             // se il salvataggio fallisce si torna allo stato precedente: niente voti che sembrano
             // registrati e poi spariscono al ricaricamento
-            if (!(await persistVote(stationId, uid, vote))) {
+            pendingVotes++;
+            const ok = await persistVote(stationId, vote).finally(() => { pendingVotes--; });
+            if (!ok) {
                 const j = stationsData.findIndex(s => s.id === stationId);
                 if (j !== -1 && stationsData[j] !== before) { stationsData[j] = before; renderAll(); }
             }
@@ -815,43 +730,33 @@
                 const base = ZONE_COORDINATES_MAP[zone] || ZONE_COORDINATES_MAP["Centro / Mellusi"];
                 pos = { lat: base.lat + (Math.random() - 0.5) * 0.004, lng: base.lng + (Math.random() - 0.5) * 0.004 };
             }
-            const newId = 'bn-custom-' + Date.now();
             const note = document.getElementById('newStationNote').value.trim();
             // lo stato scelto da chi aggiunge il distributore è il suo primo voto, così segue la stessa regola degli altri
-            const votes = status === 'unverified' ? {} : {
-                [myUid()]: {
-                    status, ts: Date.now(),
-                    fuels: { benzina: status !== 'closed', diesel: status !== 'closed', gpl: false },
-                    queueLevel: status === 'closed' ? 'Nessuna' : (status === 'limited' ? 'Moderata' : 'Scorrevole'),
-                    note: note || (status === 'available' ? 'Aperta.' : status === 'limited' ? 'Limitata.' : 'Chiusa.')
-                }
-            };
-            const newStation = {
-                id: newId, name, brand, address, zone, ...(isOtherComune ? { comune: zone } : {}),
-                lat: Number(pos.lat.toFixed(5)), lng: Number(pos.lng.toFixed(5)),
-                status, lastUpdated: status !== 'unverified' ? Date.now() : null, confirmations: status !== 'unverified' ? 1 : 0,
+            const vote = status === 'unverified' ? null : {
+                status,
                 fuels: { benzina: status !== 'closed', diesel: status !== 'closed', gpl: false },
-                queueLevel: status === 'unverified' ? 'Da verificare' : (status === 'closed' ? 'Nessuna' : 'Scorrevole'),
-                lastNote: note,
-                seedVersion: SEED_VERSION, lastReporterId: currentUser?.uid || 'cittadino-bn', votes
+                queueLevel: status === 'closed' ? 'Nessuna' : (status === 'limited' ? 'Moderata' : 'Scorrevole'),
+                note: note || (status === 'available' ? 'Aperta.' : status === 'limited' ? 'Limitata.' : 'Chiusa.')
             };
+            const station = { name, brand, address, zone, comune: isOtherComune ? zone : '', lat: Number(pos.lat.toFixed(5)), lng: Number(pos.lng.toFixed(5)) };
 
-            stationsData.unshift(newStation); selectedStationId = newId;
-            window.closeAddStationModal(); e.target.reset(); window.toggleOtherZone(); renderAll();
-            if (leafletMap) leafletMap.setView([newStation.lat, newStation.lng], 15); showToast("Nuovo distributore aggiunto!", `${name} è ora visibile.`);
-
-            if (db) {
-                try { await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('stations').doc(newId).set(newStation); }
-                catch (err) {
-                    console.error(err);
-                    stationsData = stationsData.filter(st => st.id !== newId);
-                    if (selectedStationId === newId) selectedStationId = null;
-                    renderAll();
-                    showToast('Distributore NON salvato', err.code === 'resource-exhausted'
-                        ? 'Il database ha raggiunto il limite giornaliero. Riprova più tardi.'
-                        : 'Connessione al database non riuscita. Riprova tra poco.');
-                }
+            submitBtn.disabled = true; submitBtn.textContent = 'Salvataggio…';
+            let data;
+            try {
+                data = await apiPost('/api/stations', { station, vote });
+            } catch (err) {
+                console.error(err);
+                showToast('Distributore NON salvato', err.message);
+                return;
+            } finally {
+                submitBtn.disabled = false; submitBtn.textContent = submitLabel;
             }
+            const newStation = stationFromApi(data.station);
+            stationsData = [newStation, ...stationsData.filter(st => st.id !== newStation.id)];
+            selectedStationId = newStation.id;
+            window.closeAddStationModal(); e.target.reset(); window.toggleOtherZone(); renderAll();
+            if (leafletMap) leafletMap.setView([newStation.lat, newStation.lng], 15);
+            showToast("Nuovo distributore aggiunto!", `${name} è ora visibile.`);
         };
 
         let toastTimeout = null;
@@ -965,4 +870,4 @@
         // un errore della mappa non deve bloccare elenco e voti
         try { initLeafletMapIfNeeded(); } catch (err) { console.error('Mappa non avviata', err); }
         renderAll();
-        initFirebaseAndSync();
+        initDataSync();
