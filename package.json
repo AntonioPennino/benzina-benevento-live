@@ -6,11 +6,10 @@
     "dev": "wrangler pages dev",
     "deploy": "node scripts/deploy.mjs",
     "test": "node tests/regola-voti.test.js",
-    "test:rules": "npx -y firebase-tools@14 emulators:exec --only firestore --project demo-benzina \"node --test tests/firestore-rules.test.mjs\""
+    "test:api": "node --test tests/api.test.mjs",
+    "db:local": "wrangler d1 migrations apply benzina-db --local"
   },
   "devDependencies": {
-    "@firebase/rules-unit-testing": "^4.0.1",
-    "firebase": "^11.10.0",
     "wrangler": "^4.152.0"
   }
 }
