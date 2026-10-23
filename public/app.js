@@ -143,12 +143,6 @@
                     }
                     updateConnectionUI(true, "Sincronizzazione Cloud Live attiva");
 
-                    const legacyPressDoc = snapshot.docs.find(d => d.id === 'bn-station-14' && d.data().isPressSource);
-                    if (legacyPressDoc) {
-                        const cleanSeed = INITIAL_BENEVENTO_STATIONS.find(i => i.id === 'bn-station-14');
-                        await legacyPressDoc.ref.set({ ...cleanSeed, isPressSource: false, lastReporterId: null });
-                        return;
-                    }
 
                     const loadedStations = [];
                     snapshot.forEach((docSnap) => {
@@ -673,13 +667,15 @@
             return { ...st, ...deriveFromVotes(votes, legacy), votes, legacy };
         }
 
+        // true se il voto è stato salvato; altrimenti avvisa chi ha votato
         async function persistVote(stationId, uid, vote) {
-            if (!db) return;
+            const notSaved = (msg) => { showToast('Voto NON salvato', msg); return false; };
+            if (!db) return notSaved('Il sito non è collegato al database. Ricarica la pagina e riprova.');
             const ref = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('stations').doc(stationId);
             try {
                 await db.runTransaction(async (tx) => {
                     const snap = await tx.get(ref);
-                    if (!snap.exists) return;
+                    if (!snap.exists) throw Object.assign(new Error('distributore non trovato'), { code: 'not-found' });
                     const data = snap.data();
                     data.fuels = parseFuels(data.fuels);
                     const next = applyVoteToStation(data, uid, vote);
@@ -689,9 +685,10 @@
                         isPressSource: false, seedVersion: SEED_VERSION, votes: next.votes, legacy: next.legacy
                     });
                 });
+                return true;
             } catch (e) {
                 console.error(e);
-                showToast('Voto NON salvato', e.code === 'resource-exhausted'
+                return notSaved(e.code === 'resource-exhausted'
                     ? 'Il database ha raggiunto il limite giornaliero. Riprova più tardi.'
                     : 'Connessione al database non riuscita. Riprova tra poco.');
             }
@@ -701,9 +698,15 @@
             const i = stationsData.findIndex(s => s.id === stationId);
             if (i === -1) return;
             const uid = myUid();
-            stationsData[i] = applyVoteToStation(stationsData[i], uid, vote);
+            const before = stationsData[i];
+            stationsData[i] = applyVoteToStation(before, uid, vote);
             renderAll();
-            await persistVote(stationId, uid, vote);
+            // se il salvataggio fallisce si torna allo stato precedente: niente voti che sembrano
+            // registrati e poi spariscono al ricaricamento
+            if (!(await persistVote(stationId, uid, vote))) {
+                const j = stationsData.findIndex(s => s.id === stationId);
+                if (j !== -1 && stationsData[j] !== before) { stationsData[j] = before; renderAll(); }
+            }
         }
 
         window.quickInstantFlag = async function(stationId, newStatus) {
@@ -838,8 +841,16 @@
             if (leafletMap) leafletMap.setView([newStation.lat, newStation.lng], 15); showToast("Nuovo distributore aggiunto!", `${name} è ora visibile.`);
 
             if (db) {
-                try { await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('stations').doc(newId).set(newStation); } 
-                catch (err) { console.error(err); }
+                try { await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('stations').doc(newId).set(newStation); }
+                catch (err) {
+                    console.error(err);
+                    stationsData = stationsData.filter(st => st.id !== newId);
+                    if (selectedStationId === newId) selectedStationId = null;
+                    renderAll();
+                    showToast('Distributore NON salvato', err.code === 'resource-exhausted'
+                        ? 'Il database ha raggiunto il limite giornaliero. Riprova più tardi.'
+                        : 'Connessione al database non riuscita. Riprova tra poco.');
+                }
             }
         };
 

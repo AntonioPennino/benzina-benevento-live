@@ -59,22 +59,32 @@ service cloud.firestore {
 
       allow read: if true;
 
-      // Nuovo distributore segnalato da un cittadino
+      // Primo voto di chi aggiunge il distributore: nessuno, oppure solo il proprio
+      function creatorVoteOk(d) {
+        let votes = d.get('votes', {});
+        return votes is map
+          && votes.keys().hasOnly([request.auth.uid])
+          && (votes.size() == 0 || validVote(votes[request.auth.uid]))
+          && d.confirmations <= votes.size();
+      }
+
+      // Nuovo distributore segnalato da un cittadino (quartiere o comune scritti a mano: testo libero;
+      // coordinate dall'indirizzo, in un'area larga attorno a Benevento per gli altri comuni)
       allow create: if signedIn()
         && stationId.matches('bn-custom-[0-9]{10,16}')
-        && request.resource.data.keys().hasOnly(['id', 'name', 'brand', 'address', 'zone', 'lat', 'lng', 'svgX', 'svgY', 'status', 'lastUpdated', 'confirmations', 'fuels', 'queueLevel', 'lastNote', 'seedVersion', 'lastReporterId'])
-        && request.resource.data.keys().hasAll(['id', 'name', 'brand', 'address', 'zone', 'lat', 'lng', 'svgX', 'svgY', 'status', 'lastUpdated', 'confirmations', 'fuels', 'queueLevel', 'lastNote', 'seedVersion', 'lastReporterId'])
+        && request.resource.data.keys().hasOnly(['id', 'name', 'brand', 'address', 'zone', 'comune', 'lat', 'lng', 'svgX', 'svgY', 'status', 'lastUpdated', 'confirmations', 'fuels', 'queueLevel', 'lastNote', 'seedVersion', 'lastReporterId', 'votes'])
+        && request.resource.data.keys().hasAll(['id', 'name', 'brand', 'address', 'zone', 'lat', 'lng', 'status', 'lastUpdated', 'confirmations', 'fuels', 'queueLevel', 'lastNote', 'seedVersion', 'lastReporterId'])
         && request.resource.data.id == stationId
         && str(request.resource.data.name, 50) && request.resource.data.name.size() > 0
         && str(request.resource.data.address, 70) && request.resource.data.address.size() > 0
         && request.resource.data.brand in ['Eni', 'Q8', 'Esso', 'IP', 'Tamoil', 'Energas', 'Pompa Bianca']
-        && request.resource.data.zone in ['Rione Libertà', 'Centro / Mellusi', 'Rione Ferrovia', 'Pacevecchia', 'Santa Colomba / Stadio', 'Capodimonte / Pentri', 'C.da Epitaffio / Ovest', 'Buonvento / San Vito', 'C.da Piano Cappelle / Est']
-        && request.resource.data.lat is number && request.resource.data.lat > 40.9 && request.resource.data.lat < 41.3
-        && request.resource.data.lng is number && request.resource.data.lng > 14.5 && request.resource.data.lng < 15.0
-        && request.resource.data.svgX is number && request.resource.data.svgX >= 0 && request.resource.data.svgX <= 1000
-        && request.resource.data.svgY is number && request.resource.data.svgY >= 0 && request.resource.data.svgY <= 680
+        && str(request.resource.data.zone, 40) && request.resource.data.zone.size() > 0
+        && (!('comune' in request.resource.data) || (str(request.resource.data.comune, 40) && request.resource.data.comune.size() > 0))
+        && request.resource.data.lat is number && request.resource.data.lat > 40.0 && request.resource.data.lat < 42.0
+        && request.resource.data.lng is number && request.resource.data.lng > 13.5 && request.resource.data.lng < 16.0
         && request.resource.data.seedVersion is number
         && validState(request.resource.data)
+        && creatorVoteOk(request.resource.data)
         && request.resource.data.lastReporterId == request.auth.uid;
 
       // Aggiornamento: solo i campi di stato, mai nome/indirizzo/coordinate

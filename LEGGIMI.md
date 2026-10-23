@@ -16,7 +16,7 @@ Nessuna build: HTML statico + JavaScript nel browser.
 | `public/_headers` | Header HTTP di sicurezza applicati da Cloudflare a tutte le pagine. |
 | `functions/api/press-news.ts` | Pages Function che legge i feed delle testate locali (`/api/press-news`). Cache sull'edge di 15 minuti. |
 | `wrangler.toml` | Configurazione Cloudflare Pages (nome progetto e cartella da pubblicare). |
-| `firestore.rules` | Regole di sicurezza del database, **scritte e testate ma NON ancora pubblicate** (vedi sotto). |
+| `firestore.rules` | Regole di sicurezza del database, **aggiornate al codice attuale e testate, ma NON ancora pubblicate** (vedi sotto). `npm run test:rules` le prova con l'emulatore (serve Java). |
 | `public/favicon.svg`, `public/*.png` | Icone del sito. |
 | `_ui-minimale-blu/` | Una grafica alternativa (minimale, blu) fatta in precedenza. Non è pubblicata. |
 
@@ -25,7 +25,7 @@ La configurazione Firebase dentro `app.js` è quella pubblica di un'app web: non
 ## Database (Firebase)
 - Progetto Firebase: `pompe-di-benzina---benevento`. Dati in Firestore, percorso `artifacts/benzina-benevento-live/public/data/stations`. Gli utenti entrano con login anonimo.
 - Il progetto appartiene a **un altro account Google** rispetto a quello usato per Vercel: chi vuole modificare regole o dati deve essere aggiunto in Firebase (Impostazioni → Utenti e autorizzazioni).
-- **Le regole di sicurezza non sono attive**: oggi chiunque può leggere e scrivere. Per attivarle: Firebase Console → Firestore → Regole → incolla `firestore.rules` → Pubblica (oppure `npx firebase-tools deploy --only firestore:rules --project pompe-di-benzina---benevento` con l'account giusto).
+- **Le regole di sicurezza non sono attive**: oggi chiunque può leggere e scrivere, quindi anche cancellare i voti (per errore o apposta). Le regole bloccano proprio questo: nessuno può riscrivere un distributore o toccare i voti degli altri. Per attivarle: Firebase Console → Firestore → Regole → incolla `firestore.rules` → Pubblica (oppure `npx firebase-tools deploy --only firestore:rules --project pompe-di-benzina---benevento` con l'account giusto).
 - Anche con le regole attive, restano due limiti: chi crea molti account anonimi può votare più volte, e il database non verifica che lo stato mostrato coincida con i voti. Per chiuderli servono App Check e una Cloud Function.
 - Dopo l'attivazione delle regole non si possono più riscrivere i distributori dalla pagina: per azzerare i dati servono la console Firebase o un accesso da amministratore.
 - **Quota**: il progetto è sul piano gratuito Spark (circa 50.000 letture e 20.000 scritture al giorno, si azzera verso le 9 italiane). Con molti visitatori si esaurisce e i voti smettono di salvarsi: in quel caso il proprietario deve passare al piano Blaze (a consumo).
