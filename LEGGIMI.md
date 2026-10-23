@@ -2,7 +2,7 @@
 
 Sito: https://benzinabn.it (Cloudflare Pages, progetto `benzina-benevento-live`; indirizzo tecnico https://benzina-benevento-live.pages.dev).
 La vecchia versione su Vercel (https://benzina-benevento-live.vercel.app) non è più quella aggiornata.
-Monitoraggio civico dei distributori di Benevento e del Sannio: i cittadini votano lo stato di ogni pompa (Aperta / Code / Esaurita).
+Monitoraggio civico dei distributori di Benevento e del Sannio: i cittadini votano lo stato di ogni pompa (Aperta / Limitata / Esaurita) e, a parte, la coda.
 
 ## Com'è fatto
 HTML statico + JavaScript nel browser. L'unico passaggio di "build" è lo stile: Tailwind genera `public/styles.css` (`npm run build:css`), che va ricreato dopo aver cambiato classi in `index.html` o nei file `.js` di `public/`; GitHub Actions lo rigenera comunque a ogni pubblicazione.
@@ -42,7 +42,7 @@ HTML statico + JavaScript nel browser. L'unico passaggio di "build" è lo stile:
 
 ## Logica dei voti (in `regole.js`)
 - Un voto a persona per distributore (l'identità è il codice segreto del dispositivo, vedi sopra). Si cambia toccando un altro stato, si toglie con "Togli il mio voto"; dopo ogni voto c'è "Annulla".
-- Vince lo stato con più voti. **A parità vince il peggiore** (Esaurita > Code > Aperta): con 10 Esaurita e 10 Aperta resta Esaurita, servono 11 Aperta.
+- Vince lo stato con più voti. **A parità vince il peggiore** (Esaurita > Limitata > Aperta): con 10 Esaurita e 10 Aperta resta Esaurita, servono 11 Aperta.
 - **Riavvio dopo 45 minuti** (`VOTE_WINDOW_MS`): se un voto per uno stato diverso arriva quando sono passati 45 minuti dall'ultimo voto dello stato in vigore, il conteggio riparte da quel voto. I voti precedenti restano salvati ma non pesano; la scheda mostra solo il totale delle segnalazioni ricevute (in grigio), l'elenco lo stesso totale sotto l'orario. Esempio: 10 Aperta con l'ultima alle 10:00; un Esaurita alle 10:50 rende subito la pompa Esaurita, alle 10:20 no.
 - **Code e carburanti**: ogni voto ha una coda (`queueLevel`: Nessuna coda / Attesa 5-10 min / Coda lunga / Presidio TIR, "Non indicata", "Nessuna" per le chiuse) e i carburanti. La coda mostrata è l'ultima indicata davvero tra i voti in corso di pompe aperte o con code (`currentQueue`); i carburanti sono quelli dell'ultimo voto dello stato in vigore.
 - Chi aggiunge un distributore con uno stato iniziale dà il primo voto, che segue la stessa regola.
@@ -52,8 +52,9 @@ HTML statico + JavaScript nel browser. L'unico passaggio di "build" è lo stile:
 
 ## Interfaccia
 Pensata per chi la usa dal telefono, di fretta: prima la risposta ("dove c'è benzina, quanto è fresca la notizia"), poi l'azione ("segnala con un tocco"). Il perché delle scelte è in `docs/analisi-ux.md`.
-- **Primo schermo**: riepilogo su due righe (Tutte · Senza notizie / Aperte · Code · Esaurite), che è anche il filtro; ricerca; "Vicino a me"; mappa; elenco.
-- **Stati**: un solo vocabolario con simbolo e colore, uguale su mappa, elenco e scheda: ✓ Aperta, clessidra Code, ✕ Esaurita, ? Nessuna notizia. Oltre 3 ore senza conferme (`STALE_MS`) la pompa è tratteggiata e "da confermare".
+- **Primo schermo**: riepilogo su due righe (Tutte · Senza notizie / Aperte · Limitate · Esaurite), che è anche il filtro; ricerca; "Vicino a me"; mappa; elenco.
+- **Stati**: un solo vocabolario con simbolo e colore, uguale su mappa, elenco e scheda: ✓ Aperta (verde), ! Limitata (giallo: carburante con limiti, cioè solo alcuni tipi, poca scorta, tetto di spesa), ✕ Esaurita (rosso), ? Nessuna notizia. La coda si vota a parte: una pompa aperta con coda segnalata ha il segnaposto verde con la clessidra (`iconOf`). Fino al 23/10/2026 lo stato giallo si chiamava "Code o limitata": quei voti ora valgono come Limitata.
+- **Segnaposto sovrapposti**: allo zoom attuale ogni segnaposto prende la prima posizione libera vicino al suo punto (prima la pompa aperta e quelle con notizie fresche), così si possono toccare tutti; zoomando tornano al punto esatto. Oltre 3 ore senza conferme (`STALE_MS`) la pompa è tratteggiata e "da confermare".
 - **Elenco**: una riga per pompa. Ordine: prima le notizie utili (aperte, con code, esaurite, senza notizie; le più fresche in alto), oppure dal più vicino con "Vicino a me" (la posizione si chiede solo lì).
 - **Scheda della pompa** (dal basso su telefono, a lato su computer; si apre toccando una riga o un segnaposto; il tasto indietro e Esc la chiudono): stato con orario, coda, carburanti, Indicazioni (navigatore), Condividi (`benzinabn.it/?p=<id>` apre direttamente la scheda), tre pulsanti grandi per votare, caselle Benzina/Diesel/GPL e coda sempre visibili.
 - **Nuova pompa** (pulsante "Segnala"): facile ma con dati controllati. Passo 1: "Sono alla pompa: usa la mia posizione" (trova comune e via con Nominatim), oppure comune dalla tendina, via scelta tra i suggerimenti (Photon, dati OpenStreetMap, solo vie di quel comune), numero civico facoltativo, nome e marchio obbligatori. Poi la posizione: quella del telefono, oppure il distributore vero lì vicino con lo stesso nome o marchio, oppure il numero civico o la via. Passo 2: segnaposto trascinabile solo entro 600 m, avviso "Forse c'è già" (pompe entro 200 m) che blocca finché non si conferma, stato (anche "Non so") e carburanti.
