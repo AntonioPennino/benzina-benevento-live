@@ -281,7 +281,7 @@ window.openStation = function (id) {
 function renderStationSheet() {
     const st = stations.find(s => s.id === openId);
     if (!st) return closeSheet();
-    const s = STATUS[st.status], stale = isStale(st), mine = myVote(st), counts = voteCounts(st);
+    const s = STATUS[st.status], stale = isStale(st), mine = myVote(st);
     // totale delle segnalazioni (una per persona), comprese quelle che dopo 45 minuti non contano più
     const reports = Object.keys(st.votes || {}).length;
     const q = queueText(st);
