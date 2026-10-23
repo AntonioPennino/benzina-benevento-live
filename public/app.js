@@ -61,6 +61,7 @@
         let currentSearchQuery = '';
         let currentSortBy = 'recent';
         let selectedStationId = null;
+        let modalStationId = null;   // pompa mostrata nella scheda grande (indipendente dalla selezione sulla mappa)
         let modalFlagStatusChoice = 'available';
 
         let leafletMap = null;
@@ -471,7 +472,10 @@
         // aperte e i pulsanti che selezionano un'altra pompa si occupano da soli della selezione
         document.addEventListener('click', (e) => {
             if (!selectedStationId) return;
-            if (e.target.closest('#mapQuickBanner, #leafletMap, #stationModal, #addStationModal, [onclick], button, a, input, select, label')) return;
+            // il percorso del clic si guarda com'era al momento del clic: cliccando una pompa la mappa ridisegna
+            // i segnaposto, e Firefox consegna il clic a un elemento ormai tolto dalla pagina
+            const inside = e.composedPath().some(el => el instanceof Element && el.matches('#mapQuickBanner, #leafletMap, #stationModal, #addStationModal, [onclick], button, a, input, select, label'));
+            if (inside || !e.target.isConnected) return;
             window.clearMapSelection();
         });
 
@@ -485,6 +489,7 @@
             const st = stationsData.find(s => s.id === stationId);
             if (!st) return;
             selectedStationId = stationId;
+            modalStationId = stationId;
             renderLeafletMarkers(); updateMapQuickBanner();
 
             document.getElementById('modalBrandBadge').textContent = st.brand || 'Distributore';
@@ -737,8 +742,8 @@
         };
 
         window.submitStationFlag = async function() {
-            if (!selectedStationId) return;
-            const id = selectedStationId;
+            if (!modalStationId) return;
+            const id = modalStationId;
             const vote = {
                 status: modalFlagStatusChoice, ts: Date.now(),
                 fuels: { benzina: document.getElementById('chkBenzina').checked, diesel: document.getElementById('chkDiesel').checked, gpl: document.getElementById('chkGpl').checked },
