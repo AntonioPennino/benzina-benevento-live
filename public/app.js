@@ -1,1077 +1,680 @@
-        const SEED_VERSION = 2;
+// Benzina Benevento Live: logica della pagina. Dati e voti passano dalle API del sito (functions/api);
+// la regola che decide lo stato di una pompa è in regole.js.
 
-        const INITIAL_BENEVENTO_STATIONS = [
-            { id: "bn-station-14", name: "Eni - SS7 Appia (Tufara Valle)", brand: "Eni", address: "SS7 Appia, loc. Tufara Valle", zone: "Arteria SS7 Appia Sud-Ovest", lat: 41.06710, lng: 14.71256, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
-            { id: "bn-station-1", name: "Eni - Via Napoli", brand: "Eni", address: "Via Napoli 168", zone: "Rione Libertà", lat: 41.12143, lng: 14.76953, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
-            { id: "bn-station-2", name: "Eni - Via Meomartini", brand: "Eni", address: "Via Alfonso Meomartini 60", zone: "Zona Mellusi/Alta", lat: 41.12233, lng: 14.79460, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
-            { id: "bn-station-3", name: "Eni - Via Paolella", brand: "Eni", address: "Via Alfredo Paolella 4", zone: "Santa Colomba / Stadio", lat: 41.12983, lng: 14.79477, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
-            { id: "bn-station-4", name: "Q8 - Via Avellino", brand: "Q8", address: "Via Avellino 6", zone: "Centro / Pacevecchia", lat: 41.12326, lng: 14.78899, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
-            { id: "bn-station-5", name: "Q8easy - Contrada Epitaffio", brand: "Q8", address: "C.da Epitaffio 72", zone: "C.da Epitaffio / Ovest", lat: 41.10604, lng: 14.74586, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
-            { id: "bn-station-6", name: "Energas Q8 - Via Padre Pio", brand: "Energas", address: "Via Padre Pio SP71", zone: "Capodimonte / Rotonda dei Pentri", lat: 41.14642, lng: 14.76837, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
-            { id: "bn-station-7", name: "Tamoil 24h - Piazza Bissolati", brand: "Tamoil", address: "Piazza Bissolati / Via Grimoaldo Re 11", zone: "Rione Ferrovia", lat: 41.13446, lng: 14.77290, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
-            { id: "bn-station-8", name: "Tamoil - Via Bachelet", brand: "Tamoil", address: "Via Vittorio Bachelet", zone: "Pacevecchia", lat: 41.12103, lng: 14.80224, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
-            { id: "bn-station-9", name: "Esso - Via dei Longobardi", brand: "Esso", address: "Via dei Longobardi 10", zone: "Zona Ponticelli / Centro", lat: 41.13888, lng: 14.77939, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
-            { id: "bn-station-10", name: "IP - Via Pietro Nenni", brand: "IP", address: "Via Pietro Nenni 38", zone: "Zona Atlantici / Mellusi", lat: 41.12653, lng: 14.79700, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
-            { id: "bn-station-11", name: "Distributore Di.Si. - Viale Virgilio", brand: "Di.Si.", address: "Viale Virgilio snc", zone: "Rione Libertà / Ponte Vanvitelli", lat: 41.14480, lng: 14.76496, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
-            { id: "bn-station-12", name: "Conad Self 24h - Buonvento", brand: "Conad", address: "SS7 Appia / C.da San Vito", zone: "Buonvento / San Vito", lat: 41.11802, lng: 14.75881, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION },
-            { id: "bn-station-13", name: "Distributore C.da Piano Cappelle", brand: "Pompa Bianca", address: "Via Valfortore / C.da Piano Cappelle", zone: "C.da Piano Cappelle / Est", lat: 41.10367, lng: 14.82453, status: "unverified", lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: "Da verificare", lastNote: "", seedVersion: SEED_VERSION }
-        ];
+const POLL_MS = 20000;
+const STALE_MS = 3 * 60 * 60 * 1000;
+const BENEVENTO = { lat: 41.1300, lng: 14.7820 };
+const STATUS = {
+    available:  { label: 'Aperta',          short: 'Aperta',   icon: 'fa-check',          text: 'text-emerald-700', bg: 'bg-emerald-50',  ring: 'border-emerald-200', solid: 'bg-emerald-600' },
+    limited:    { label: 'Code o limitata', short: 'Code',     icon: 'fa-hourglass-half', text: 'text-amber-700',   bg: 'bg-amber-50',    ring: 'border-amber-200',   solid: 'bg-amber-500' },
+    closed:     { label: 'Esaurita',        short: 'Esaurita', icon: 'fa-xmark',          text: 'text-red-700',     bg: 'bg-red-50',      ring: 'border-red-200',     solid: 'bg-red-600' },
+    unverified: { label: 'Nessuna notizia', short: 'Nessuna notizia', icon: 'fa-question', text: 'text-slate-600',  bg: 'bg-slate-50',    ring: 'border-slate-200',   solid: 'bg-slate-500' },
+};
+const DEFAULT_NOTES = ['Aperta.', 'Limitata.', 'Chiusa.', 'Aggiornata.', ''];
 
-        const ZONE_COORDINATES_MAP = {
-            "Rione Libertà": { lat: 41.1260, lng: 14.7640 },
-            "Centro / Mellusi": { lat: 41.1305, lng: 14.7850 },
-            "Rione Ferrovia": { lat: 41.1410, lng: 14.7710 },
-            "Pacevecchia": { lat: 41.1335, lng: 14.8010 },
-            "Santa Colomba / Stadio": { lat: 41.1185, lng: 14.7750 },
-            "Capodimonte / Pentri": { lat: 41.1425, lng: 14.7930 },
-            "C.da Epitaffio / Ovest": { lat: 41.1295, lng: 14.7510 },
-            "Buonvento / San Vito": { lat: 41.1145, lng: 14.7545 },
-            "C.da Piano Cappelle / Est": { lat: 41.1185, lng: 14.8040 }
-        };
+let stations = [];
+let loaded = false, loadFailed = false;
+let filter = 'all', query = '';
+let me = null, meMarker = null;          // posizione, solo dopo "Vicino a me"
+let map = null, markers = {};
+let openId = null;                        // pompa nella scheda
+let sheetMode = null;                     // 'station' | 'add' | 'help'
+let myVoterId = null, secretCache = null, pendingVotes = 0;
 
-        // si parte vuoti: finché non arrivano i dati veri l'elenco mostra "Caricamento…"
-        // (INITIAL_BENEVENTO_STATIONS resta come elenco dei distributori iniziali, usato da scripts/export-firebase.mjs)
-        let stationsData = [];
-        let currentFilterStatus = 'all';
-        let currentSearchQuery = '';
-        let currentSortBy = 'recent';
-        let selectedStationId = null;
-        let modalStationId = null;
-        let bannerQueue = null;   // coda scelta nella scheda piccola: { id, q } (si usa col prossimo voto su quella pompa)   // pompa mostrata nella scheda grande (indipendente dalla selezione sulla mappa)
-        let modalFlagStatusChoice = 'available';
+// ---------- utilità ----------
+const $ = (id) => document.getElementById(id);
+const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function km(a, b) { const dLat = (a.lat - b.lat) * 111, dLng = (a.lng - b.lng) * 111 * Math.cos(a.lat * Math.PI / 180); return Math.hypot(dLat, dLng); }
+function fmtKm(d) { return d < 1 ? `${Math.round(d * 100) * 10} m` : `${d.toFixed(1).replace('.', ',')} km`; }
+function ago(ts) {
+    if (!ts) return '';
+    const m = Math.max(0, Math.round((Date.now() - ts) / 60000));
+    if (m < 1) return 'adesso';
+    if (m < 60) return `${m} min fa`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h} ${h === 1 ? 'ora' : 'ore'} fa`;
+    const d = Math.floor(h / 24);
+    return `${d} ${d === 1 ? 'giorno' : 'giorni'} fa`;
+}
+const clock = (ts) => { const d = new Date(ts); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+const isStale = (st) => st.status !== 'unverified' && st.lastUpdated && Date.now() - st.lastUpdated > STALE_MS;
+const myVote = (st) => (myVoterId && st.votes && st.votes[myVoterId]) || null;
 
-        let leafletMap = null;
-        let leafletMarkers = {};
-        let myVoterId = null;   // id pubblico di questo dispositivo nei voti
-        let dataLoaded = false;
-        let loadFailed = false;  // il primo caricamento non è riuscito (l'elenco lo dice invece di restare vuoto)
-        let mapFramed = false;   // la mappa è già stata inquadrata sui distributori
-        let deepLinkDone = false; // link diretto a una pompa (?p=...) già aperto
-        let userPos = null;      // posizione del telefono, solo se si sceglie "Più vicini a me"
-        let userMarker = null;
-        let pendingVotes = 0;   // voti in corso di salvataggio: intanto l'aggiornamento periodico aspetta
+let toastTimer = null;
+function toast(text, actionLabel, action) {
+    const t = $('toast'), a = $('toastAction');
+    $('toastText').textContent = text;
+    a.classList.toggle('hidden', !actionLabel);
+    a.textContent = actionLabel || '';
+    a.onclick = () => { t.classList.replace('flex', 'hidden'); action && action(); };
+    t.classList.replace('hidden', 'flex');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.replace('flex', 'hidden'), actionLabel ? 6000 : 3500);
+}
 
-        function esc(v) {
-            return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+// ---------- identità (stessa del sito) ----------
+function voterSecret() {
+    if (secretCache) return secretCache;
+    try { secretCache = localStorage.getItem('bn-voter-secret'); } catch (e) {}
+    if (!secretCache || !/^[0-9a-f]{64}$/.test(secretCache)) {
+        secretCache = [...crypto.getRandomValues(new Uint8Array(32))].map(b => b.toString(16).padStart(2, '0')).join('');
+        try { localStorage.setItem('bn-voter-secret', secretCache); } catch (e) {}
+    }
+    return secretCache;
+}
+async function computeVoterId() {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('voter:' + voterSecret()));
+    return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 24);
+}
+
+// ---------- dati ----------
+function fromApi(s) {
+    return normalizeStation({ ...s, status: 'unverified', lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: 'Non indicata', lastNote: '' });
+}
+async function apiPost(url, body) {
+    let res, data = {};
+    try {
+        res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, secret: voterSecret() }) });
+        data = await res.json().catch(() => ({}));
+    } catch (e) { throw new Error('Connessione non riuscita. Controlla la rete e riprova.'); }
+    if (!res.ok) throw new Error(data.error || 'Errore del server. Riprova tra poco.');
+    return data;
+}
+let loading = false;
+async function load() {
+    if (loading || pendingVotes) return;
+    loading = true;
+    try {
+        const early = window.__stationsRequest; window.__stationsRequest = null;
+        const res = (early && await early) || await fetch('/api/stations', { cache: 'no-store' });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !Array.isArray(data.stations)) throw new Error(data.error || `HTTP ${res.status}`);
+        if (pendingVotes) return;
+        stations = data.stations.filter(s => /^bn-(station|custom)-\d+$/.test(s.id)).map(fromApi);
+        const first = !loaded;
+        loaded = true; loadFailed = false;
+        setLive(true);
+        render();
+        if (first) { frameMap(); openFromUrl(); }
+        if (sheetMode === 'station' && openId) renderStationSheet();
+    } catch (e) {
+        console.warn(e);
+        if (!loaded) loadFailed = true;
+        setLive(false);
+        render();
+    } finally { loading = false; }
+}
+function setLive(ok) {
+    $('liveStatus').innerHTML = ok
+        ? '<span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1 align-middle animate-pulse"></span>Aggiornato in tempo reale dai cittadini'
+        : '<span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 mr-1 align-middle"></span>Connessione assente: riprovo…';
+}
+
+// ---------- elenco ----------
+const ORDER = { available: 0, limited: 1, closed: 2, unverified: 3 };
+function visibleStations() {
+    const q = query.trim().toLowerCase();
+    return stations.filter(st => {
+        if (filter !== 'all' && st.status !== filter) return false;
+        return !q || [st.name, st.brand, st.address, st.zone, st.comune].some(v => (v || '').toLowerCase().includes(q));
+    }).sort((a, b) => {
+        if (me) return km(me, a) - km(me, b);
+        // prima le notizie utili: aperte, con code, esaurite, senza notizie; dentro ogni gruppo le più fresche
+        const ga = ORDER[a.status] + (isStale(a) ? 0.5 : 0), gb = ORDER[b.status] + (isStale(b) ? 0.5 : 0);
+        return ga !== gb ? ga - gb : (b.lastUpdated || 0) - (a.lastUpdated || 0);
+    });
+}
+
+function renderSummary() {
+    const n = (s) => stations.filter(st => st.status === s).length;
+    const chip = ([k, label, icon, color]) => `
+        <button onclick="setFilter('${k}')" aria-pressed="${filter === k}" class="min-w-0 inline-flex items-center justify-center gap-1.5 h-11 px-2 rounded-xl border text-[14px] font-semibold transition ${filter === k ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white border-slate-200 text-slate-800 hover:bg-slate-50'}">
+            <i class="fa-solid ${icon} ${filter === k ? 'text-amber-400' : color}"></i><span class="truncate">${label}</span><span class="font-extrabold">${loaded ? (k === 'all' ? stations.length : n(k)) : '–'}</span>
+        </button>`;
+    $('summary').innerHTML = `
+        <div class="grid grid-cols-2 gap-2">${[['all', 'Tutte', 'fa-gas-pump', 'text-slate-700'], ['unverified', 'Senza notizie', 'fa-question', 'text-slate-500']].map(chip).join('')}</div>
+        <div class="grid grid-cols-3 gap-2 mt-2">${[['available', 'Aperte', 'fa-check', 'text-emerald-600'], ['limited', 'Code', 'fa-hourglass-half', 'text-amber-600'], ['closed', 'Esaurite', 'fa-xmark', 'text-red-600']].map(chip).join('')}</div>`;
+}
+
+function queueText(st) { return st.status !== 'closed' && QUEUE_LABELS[st.queueLevel] ? QUEUE_LABELS[st.queueLevel] : ''; }
+
+function renderList() {
+    const el = $('list');
+    if (!loaded) {
+        el.innerHTML = loadFailed
+            ? '<p class="px-4 py-10 text-center text-[15px] text-slate-600"><i class="fa-solid fa-plug-circle-exclamation text-2xl text-slate-400 block mb-2"></i>Non riesco a caricare i distributori.<br>Controlla la connessione: riprovo da solo.</p>'
+            : Array.from({ length: 5 }, () => '<div class="flex items-center gap-3 px-4 py-3.5 border-b border-slate-100 animate-pulse"><span class="w-10 h-10 rounded-full bg-slate-200"></span><span class="flex-1 space-y-2"><span class="block h-3.5 w-2/3 bg-slate-200 rounded"></span><span class="block h-3 w-1/2 bg-slate-100 rounded"></span></span></div>').join('');
+        return;
+    }
+    const list = visibleStations();
+    $('listTitle').textContent = `${list.length} ${list.length === 1 ? 'distributore' : 'distributori'}${filter !== 'all' ? ' · ' + STATUS[filter].label.toLowerCase() : ''}`;
+    $('listOrder').textContent = me ? 'dal più vicino' : 'prima le notizie utili';
+    if (!list.length) {
+        el.innerHTML = `<p class="px-4 py-10 text-center text-[15px] text-slate-600">Nessun distributore${query ? ` per "${esc(query)}"` : ''} in questo filtro.<br><button onclick="setFilter('all'); $('search').value=''; onSearch('')" class="mt-3 px-4 h-10 rounded-xl bg-slate-900 text-white font-bold">Mostra tutti</button></p>`;
+        return;
+    }
+    el.innerHTML = list.map(st => {
+        const s = STATUS[st.status], stale = isStale(st), mine = myVote(st), q = queueText(st);
+        const where = [st.address, me ? fmtKm(km(me, st)) : st.zone].filter(Boolean).join(' · ');
+        return `
+        <button role="listitem" onclick="openStation('${esc(st.id)}')" class="w-full text-left flex items-center gap-3 px-4 py-3 border-b border-slate-100 hover:bg-slate-50 focus:bg-amber-50 focus:outline-none ${openId === st.id ? 'bg-amber-50' : ''}">
+            <span class="w-10 h-10 rounded-full ${s.solid} ${stale ? 'opacity-50' : ''} text-white flex items-center justify-center shrink-0"><i class="fa-solid ${s.icon}"></i></span>
+            <span class="flex-1 min-w-0">
+                <span class="block text-[15px] font-bold text-slate-900 truncate">${esc(st.name)}</span>
+                <span class="block text-[13px] text-slate-500 truncate">${esc(where)}</span>
+                ${q ? `<span class="inline-flex items-center gap-1 mt-0.5 text-[12px] font-semibold ${st.queueLevel === 'Scorrevole' ? 'text-emerald-700' : 'text-amber-700'}"><i class="fa-solid fa-car-side"></i>${esc(q)}</span>` : ''}
+            </span>
+            <span class="text-right shrink-0 max-w-[38%]">
+                <span class="block text-[14px] font-bold ${stale ? 'text-slate-500' : s.text}">${s.short}</span>
+                <span class="block text-[12px] ${stale ? 'text-amber-700 font-semibold' : 'text-slate-500'}">${st.lastUpdated ? (stale ? 'da confermare · ' : '') + ago(st.lastUpdated) : 'sei lì? segnala'}</span>
+                ${mine ? '<span class="block text-[11px] text-blue-700 font-semibold">hai votato</span>' : ''}
+            </span>
+        </button>`;
+    }).join('');
+}
+
+// ---------- mappa ----------
+function initMap() {
+    if (map || !window.L) return;
+    map = L.map('map', { zoomControl: true, attributionControl: true }).setView([BENEVENTO.lat, BENEVENTO.lng], 13);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
+    map.on('click', () => { if (sheetMode === 'station') closeSheet(); });
+    if (window.ResizeObserver) new ResizeObserver(() => map.invalidateSize()).observe($('map'));
+}
+function renderMarkers() {
+    if (!map) return;
+    Object.values(markers).forEach(m => map.removeLayer(m));
+    markers = {};
+    const ids = new Set(visibleStations().map(s => s.id));
+    stations.forEach(st => {
+        if (!ids.has(st.id)) return;
+        const sel = openId === st.id, stale = isStale(st);
+        const icon = L.divIcon({ className: '', html: `<div class="pin pin-${st.status}${stale ? ' pin-stale' : ''}${sel ? ' pin-selected' : ''}"><i class="fa-solid ${STATUS[st.status].icon}"></i></div>`, iconSize: [34, 34], iconAnchor: [17, 17] });
+        const z = sel ? 1000 : st.status === 'unverified' ? 0 : stale ? 100 : 500;
+        markers[st.id] = L.marker([st.lat, st.lng], { icon, zIndexOffset: z, title: st.name, keyboard: true }).on('click', () => openStation(st.id)).addTo(map);
+    });
+}
+function frameMap() {
+    if (!map) return;
+    const pts = stations.filter(s => km(s, BENEVENTO) < 6).map(s => [s.lat, s.lng]);
+    if (pts.length > 1) map.fitBounds(pts, { padding: [24, 24], maxZoom: 15 });
+}
+
+function render() { renderSummary(); renderList(); renderMarkers(); }
+window.setFilter = (f) => { filter = f; render(); };
+window.onSearch = (v) => { query = v; render(); };
+
+// ---------- vicino a me ----------
+function setNearBtn(on) {
+    const btn = $('nearBtn');
+    ['bg-blue-600', 'text-white', 'border-blue-600'].forEach(c => btn.classList.toggle(c, on));
+    ['bg-white', 'text-slate-800', 'border-slate-300'].forEach(c => btn.classList.toggle(c, !on));
+    btn.setAttribute('aria-pressed', on);
+}
+window.toggleNearMe = function () {
+    if (me) {
+        me = null;
+        if (meMarker) { map.removeLayer(meMarker); meMarker = null; }
+        setNearBtn(false);
+        render(); frameMap();
+        return;
+    }
+    if (!navigator.geolocation) return toast('Questo browser non può dare la posizione.');
+    toast('Cerco la tua posizione…');
+    navigator.geolocation.getCurrentPosition((p) => {
+        me = { lat: p.coords.latitude, lng: p.coords.longitude };
+        setNearBtn(true);
+        if (map) {
+            meMarker = L.marker([me.lat, me.lng], { icon: L.divIcon({ className: '', html: '<div class="pin-me"></div>', iconSize: [18, 18], iconAnchor: [9, 9] }), zIndexOffset: 2000, title: 'Tu sei qui' }).addTo(map);
+            const near = visibleStations().slice(0, 3).map(s => [s.lat, s.lng]);
+            map.fitBounds([[me.lat, me.lng], ...near], { padding: [40, 40], maxZoom: 15 });
         }
+        render();
+        toast('Ordinati dal più vicino.');
+    }, (err) => toast(err.code === 1 ? 'Accesso alla posizione negato: puoi riattivarlo dalle impostazioni del browser.' : 'Non riesco a trovarti. Riprova tra poco.'),
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
+};
 
-        function getStatusConfig(status) {
-            switch (status) {
-                case 'available': return { label: 'Aperta / Disponibile', shortLabel: 'APERTA', emoji: '🟢', hex: '#10B981', badgeClass: 'bg-emerald-100 text-emerald-900 border-emerald-300', cardBorderClass: 'border-l-4 border-l-emerald-500', pulseClass: 'pin-pulse-available' };
-                case 'limited': return { label: 'Limitata / Code / Presidio', shortLabel: 'LIMITATA', emoji: '🟡', hex: '#F59E0B', badgeClass: 'bg-amber-100 text-amber-900 border-amber-300', cardBorderClass: 'border-l-4 border-l-amber-500', pulseClass: 'pin-pulse-limited' };
-                case 'closed': return { label: 'Chiusa / Esaurito', shortLabel: 'ESAURITO', emoji: '🔴', hex: '#E11D48', badgeClass: 'bg-rose-100 text-rose-900 border-rose-300', cardBorderClass: 'border-l-4 border-l-rose-600', pulseClass: 'pin-pulse-closed' };
-                case 'unverified': default: return { label: 'In attesa di segnalazione', shortLabel: 'DA VERIFICARE', emoji: '⚪', hex: '#64748B', badgeClass: 'bg-slate-100 text-slate-700 border-slate-300', cardBorderClass: 'border-l-4 border-l-slate-400', pulseClass: '' };
-            }
-        }
+// ---------- scheda (in basso su telefono, a lato su computer) ----------
+function showSheet(html) {
+    const sh = $('sheet');
+    sh.innerHTML = `<div class="lg:hidden pt-2.5 pb-1 flex justify-center"><span class="w-10 h-1.5 rounded-full bg-slate-300"></span></div>${html}`;
+    sh.classList.remove('closed');
+    $('sheetBackdrop').classList.remove('hidden');
+    sh.scrollTop = 0;
+}
+window.closeSheet = function (fromHistory) {
+    if (!sheetMode) return;
+    $('sheet').classList.add('closed');
+    $('sheetBackdrop').classList.add('hidden');
+    sheetMode = null; openId = null;
+    // la scheda è già chiusa: il "popstate" che arriva da questo history.back() non deve chiudere
+    // un'eventuale scheda aperta subito dopo
+    if (!fromHistory && history.state && history.state.sheet) { ignoreNextPop = true; history.back(); }
+    render();
+};
+// il tasto "indietro" del telefono chiude la scheda invece di uscire dal sito
+let ignoreNextPop = false;
+window.addEventListener('popstate', () => { if (ignoreNextPop) { ignoreNextPop = false; return; } if (sheetMode) closeSheet(true); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSheet(); });
+function pushSheetState(url) { if (!(history.state && history.state.sheet)) history.pushState({ sheet: true }, '', url || location.href); else history.replaceState({ sheet: true }, '', url || location.href); }
 
+const closeBtn = '<button onclick="closeSheet()" aria-label="Chiudi" class="w-10 h-10 shrink-0 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>';
 
-        function formatRelativeTime(timestampMs) {
-            if (!timestampMs) return 'In attesa del primo flag';
-            const diffSeconds = Math.max(0, Math.floor((Date.now() - timestampMs) / 1000));
-            if (diffSeconds < 45) return 'Adesso (pochi secondi fa)';
-            const diffMinutes = Math.floor(diffSeconds / 60);
-            if (diffMinutes === 1) return '1 minuto fa';
-            if (diffMinutes < 60) return `${diffMinutes} minuti fa`;
-            const diffHours = Math.floor(diffMinutes / 60);
-            if (diffHours === 1) return '1 ora fa';
-            if (diffHours < 24) return `${diffHours} ore fa`;
-            return `${Math.floor(diffHours / 24)}g fa`;
-        }
+window.openStation = function (id) {
+    const st = stations.find(s => s.id === id);
+    if (!st) return;
+    openId = id; sheetMode = 'station';
+    pushSheetState(`?p=${encodeURIComponent(id)}`);
+    renderStationSheet();
+    render();
+    if (map) map.panTo([st.lat, st.lng], { animate: true });
+};
 
-        function formatExactTime(timestampMs) {
-            if (!timestampMs) return '';
-            const d = new Date(timestampMs);
-            return `alle ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-        }
+function renderStationSheet() {
+    const st = stations.find(s => s.id === openId);
+    if (!st) return closeSheet();
+    const s = STATUS[st.status], stale = isStale(st), mine = myVote(st), counts = voteCounts(st);
+    const total = counts.available + counts.limited + counts.closed;
+    const oldTotal = counts.old.available + counts.old.limited + counts.old.closed;
+    const oldText = [['available', 'aperta'], ['limited', 'code'], ['closed', 'esaurita']].filter(([k]) => counts.old[k]).map(([k, l]) => `${counts.old[k]} ${l}`).join(', ');
+    const q = queueText(st);
+    const fuels = st.status !== 'unverified' && st.status !== 'closed' ? [['benzina', 'Benzina'], ['diesel', 'Diesel'], ['gpl', 'GPL']].filter(([k]) => typeof st.fuels?.[k] === 'boolean') : [];
+    const note = st.lastNote && !DEFAULT_NOTES.includes(st.lastNote) ? st.lastNote : '';
+    const dirUrl = `https://www.google.com/maps/dir/?api=1&destination=${st.lat},${st.lng}`;
+    // carburanti e coda: quelli del tuo voto, oppure una bozza (Benzina e Diesel spuntati) che parte col voto
+    const draft = draftFor(st, mine);
+    const detailsOpen = !mine || mine.status !== 'closed';
+    showSheet(`
+        <div class="px-5 pt-2 pb-safe">
+            <div class="flex items-start gap-3">
+                <div class="flex-1 min-w-0">
+                    <h2 id="sheetTitle" class="text-[20px] font-extrabold leading-tight">${esc(st.name)}</h2>
+                    <p class="text-[14px] text-slate-500 mt-0.5">${esc(st.address)} · ${esc(st.zone)}${me ? ' · ' + fmtKm(km(me, st)) : ''}</p>
+                </div>
+                ${closeBtn}
+            </div>
+            <div class="flex gap-2 mt-3">
+                <a href="${dirUrl}" target="_blank" rel="noopener" class="flex-1 inline-flex items-center justify-center gap-2 h-11 rounded-xl bg-blue-600 text-white text-[14px] font-bold"><i class="fa-solid fa-diamond-turn-right"></i> Indicazioni</a>
+                <button onclick="shareStation()" class="flex-1 inline-flex items-center justify-center gap-2 h-11 rounded-xl border border-slate-300 text-[14px] font-bold"><i class="fa-solid fa-share-nodes"></i> Condividi</button>
+            </div>
 
-        // ---- Dati: API del sito (Cloudflare D1, functions/api). La pagina chiede l'elenco ogni POLL_MS
-        // mentre è visibile; si ferma quando la scheda è nascosta, per non consumare richieste. ----
-        const POLL_MS = 20000;
-        let pollTimer = null, loadingStations = false, secretCache = null;
-
-        // codice segreto del dispositivo (resta sul telefono); nei voti compare solo il suo hash
-        function voterSecret() {
-            if (secretCache) return secretCache;
-            try { secretCache = localStorage.getItem('bn-voter-secret'); } catch (e) {}
-            if (!secretCache || !/^[0-9a-f]{64}$/.test(secretCache)) {
-                secretCache = [...crypto.getRandomValues(new Uint8Array(32))].map(b => b.toString(16).padStart(2, '0')).join('');
-                try { localStorage.setItem('bn-voter-secret', secretCache); } catch (e) {}
-            }
-            return secretCache;
-        }
-        // stesso calcolo di voterIdFromSecret in lib/benzina.ts
-        async function computeVoterId() {
-            const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('voter:' + voterSecret()));
-            return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 24);
-        }
-
-        // distributore come arriva dall'API → con lo stato ricalcolato dai voti
-        function stationFromApi(s) {
-            return normalizeStation({ ...s, status: 'unverified', lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: 'Da verificare', lastNote: '' });
-        }
-
-        async function apiPost(url, body) {
-            let res, data = {};
-            try {
-                res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, secret: voterSecret() }) });
-                data = await res.json().catch(() => ({}));
-            } catch (e) {
-                throw new Error('Connessione non riuscita. Controlla la rete e riprova.');
-            }
-            if (!res.ok) throw new Error(data.error || 'Errore del server. Riprova tra poco.');
-            return data;
-        }
-
-        async function loadStationsFromApi() {
-            if (loadingStations || pendingVotes) return;
-            loadingStations = true;
-            try {
-                // la prima volta si usa la richiesta già partita dall'head di index.html
-                const early = window.__stationsRequest;
-                window.__stationsRequest = null;
-                const res = (early && await early) || await fetch('/api/stations', { cache: 'no-store' });
-                const data = await res.json().catch(() => ({}));
-                if (!res.ok || !Array.isArray(data.stations)) throw new Error(data.error || `HTTP ${res.status}`);
-                if (pendingVotes) return;
-                // gli id finiscono in attributi HTML: si accettano solo quelli nel formato previsto
-                stationsData = data.stations.filter(st => /^bn-(station|custom)-\d+$/.test(st.id)).map(stationFromApi);
-                dataLoaded = true;
-                loadFailed = false;
-                updateConnectionUI(true, "Dati condivisi in tempo reale");
-                renderAll();
-                openDeepLink();
-                frameMapOnStations();
-            } catch (err) {
-                console.warn('Elenco distributori non aggiornato', err);
-                if (!dataLoaded) { loadFailed = true; renderStationsList(); }
-                updateConnectionUI(false, dataLoaded ? "Aggiornamento non riuscito: riprovo…" : "Database non raggiungibile: riprovo…");
-            } finally {
-                loadingStations = false;
-            }
-        }
-
-        async function initDataSync() {
-            try { myVoterId = await computeVoterId(); } catch (e) { console.warn('Id del dispositivo non disponibile', e); }
-            document.getElementById('footerUserId').textContent = myVoterId || 'non disponibile';
-            await loadStationsFromApi();
-            const schedule = () => {
-                clearInterval(pollTimer);
-                pollTimer = document.hidden ? null : setInterval(loadStationsFromApi, POLL_MS);
-            };
-            document.addEventListener('visibilitychange', () => { if (!document.hidden) loadStationsFromApi(); schedule(); });
-            schedule();
-        }
-
-        function updateConnectionUI(isOnline, text) {
-            const dot = document.getElementById('connectionDot');
-            const label = document.getElementById('connectionText');
-            if (label) label.textContent = text;
-            if (dot) dot.className = isOnline ? "w-2 h-2 rounded-full bg-emerald-400 animate-pulse" : "w-2 h-2 rounded-full bg-amber-400";
-        }
-
-
-        function renderAll() {
-            renderCounters();
-            renderLeafletMarkers();
-            renderStationsList();
-            updateMapQuickBanner();
-        }
-
-        function renderCounters() {
-            const total = stationsData.length;
-            const available = stationsData.filter(s => s.status === 'available').length;
-            const limited = stationsData.filter(s => s.status === 'limited').length;
-            const closed = stationsData.filter(s => s.status === 'closed').length;
-            const unverified = stationsData.filter(s => !s.status || s.status === 'unverified').length;
-
-            document.getElementById('count-all').textContent = total;
-            document.getElementById('count-available').textContent = available;
-            document.getElementById('count-limited').textContent = limited;
-            document.getElementById('count-closed').textContent = closed;
-            document.getElementById('count-unverified').textContent = unverified;
-
-            ['all', 'available', 'limited', 'closed', 'unverified'].forEach(st => {
-                const pill = document.getElementById(`pill-${st}`);
-                if (!pill) return;
-                pill.className = currentFilterStatus === st
-                    ? "px-2.5 py-1.5 rounded-lg text-xs font-extrabold transition bg-slate-900 text-amber-400 shadow-xs"
-                    : "px-2 py-1.5 rounded-lg text-xs font-bold transition bg-slate-100 text-slate-700 hover:bg-slate-200";
-            });
-        }
-
-
-        function getFilteredAndSortedStations() {
-            return stationsData.filter(st => {
-                const effectiveStatus = st.status || 'unverified';
-                if (currentFilterStatus !== 'all' && effectiveStatus !== currentFilterStatus) return false;
-                if (currentSearchQuery.trim() !== '') {
-                    const q = currentSearchQuery.toLowerCase().trim();
-                    return [st.name, st.brand, st.address, st.zone].some(val => (val || '').toLowerCase().includes(q));
-                }
-                return true;
-            }).sort((a, b) => {
-                if (currentSortBy === 'near' && userPos) return distanceKm(userPos, a) - distanceKm(userPos, b);
-                if (currentSortBy === 'recent') {
-                    const timeA = a.lastUpdated || 0;
-                    const timeB = b.lastUpdated || 0;
-                    return timeB !== timeA ? timeB - timeA : (a.name || '').localeCompare(b.name || '');
-                }
-                if (currentSortBy === 'status') {
-                    const order = { available: 1, limited: 2, closed: 3, unverified: 4 };
-                    const diff = (order[a.status] || 4) - (order[b.status] || 4);
-                    return diff !== 0 ? diff : (b.lastUpdated || 0) - (a.lastUpdated || 0);
-                }
-                if (currentSortBy === 'unverified') {
-                    const order = { unverified: 1, available: 2, limited: 3, closed: 4 };
-                    const diff = (order[a.status] || 1) - (order[b.status] || 1);
-                    return diff !== 0 ? diff : (a.name || '').localeCompare(b.name || '');
-                }
-                return (a.name || '').localeCompare(b.name || '');
-            });
-        }
-
-        // inquadra i distributori entro 6 km dal centro (quelli di altri comuni restano raggiungibili
-        // spostando la mappa); si fa una volta sola, per non togliere la vista a chi la sta usando
-        function cityBounds() {
-            const pts = stationsData.filter(s => distanceKm(s, BENEVENTO_CENTER) < 6).map(s => [s.lat, s.lng]);
-            return pts.length >= 2 ? L.latLngBounds(pts) : null;
-        }
-        function frameMapOnStations() {
-            if (!leafletMap || mapFramed) return;
-            const b = cityBounds();
-            if (!b) return;
-            mapFramed = true;
-            leafletMap.fitBounds(b, { padding: [24, 24], maxZoom: 15 });
-        }
-
-        // benzinabn.it/?p=<id>: apre la scheda di quella pompa (link mandato con "Condividi")
-        function openDeepLink() {
-            if (deepLinkDone) return;
-            deepLinkDone = true;
-            const id = new URLSearchParams(location.search).get('p');
-            const st = id && stationsData.find(s => s.id === id);
-            if (!st) return;
-            if (leafletMap) { leafletMap.setView([st.lat, st.lng], 15); mapFramed = true; }
-            window.handlePinClick(id);
-            window.openStationModal(id);
-        }
-
-        // Condividi la pompa della scheda aperta: menu di condivisione del telefono (WhatsApp, Telegram…),
-        // altrimenti il link viene copiato
-        window.shareStation = async function() {
-            const st = stationsData.find(s => s.id === modalStationId);
-            if (!st) return;
-            const cfg = getStatusConfig(st.status);
-            const lv = lastVoteOf(st);
-            const url = `${location.origin}/?p=${encodeURIComponent(st.id)}`;
-            const text = `⛽ ${st.name}: ${cfg.emoji} ${cfg.shortLabel.toLowerCase()}${lv ? ` (ultimo voto ${formatRelativeTime(lv.ts).toLowerCase()})` : ''}. Guarda e aggiorna anche tu:`;
-            if (navigator.share) {
-                try { await navigator.share({ title: 'Benzina Benevento Live', text, url }); return; }
-                catch (e) { if (e.name === 'AbortError') return; }
-            }
-            try {
-                await navigator.clipboard.writeText(`${text} ${url}`);
-                showToast('Link copiato', 'Incollalo dove vuoi, ad esempio in un gruppo WhatsApp.');
-            } catch (e) {
-                window.open(`https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`, '_blank', 'noopener');
-            }
-        };
-
-        function initLeafletMapIfNeeded() {
-            if (leafletMap) return;
-            if (!window.L) {
-                document.getElementById('leafletMap').innerHTML = '<div class="h-full flex items-center justify-center p-6 text-center text-xs text-slate-500">Mappa non disponibile: ricarica la pagina. L’elenco dei distributori funziona comunque.</div>';
-                return;
-            }
-            leafletMap = L.map('leafletMap', { center: [41.1250, 14.7720], zoom: 12 });
-            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            }).addTo(leafletMap);
-            // il riquadro cambia misura (vista Mappa/Elenco, rotazione del telefono): la mappa si adegua
-            if (window.ResizeObserver) new ResizeObserver(() => leafletMap.invalidateSize()).observe(document.getElementById('leafletMap'));
-            // toccare la mappa fuori da una pompa chiude la scheda (Leaflet non lo segnala dopo un trascinamento)
-            leafletMap.on('click', () => window.clearMapSelection());
-            renderLeafletMarkers();
-        }
-
-        // stato non confermato da più di così: sulla mappa la pompa appare sbiadita
-        const STALE_MS = 3 * 60 * 60 * 1000;
-        const isStaleStatus = (st) => st.status !== 'unverified' && st.lastUpdated && (Date.now() - st.lastUpdated) > STALE_MS;
-
-        function renderLeafletMarkers() {
-            if (!leafletMap) return;
-            Object.values(leafletMarkers).forEach(m => leafletMap.removeLayer(m));
-            leafletMarkers = {};
-            const filteredIds = new Set(getFilteredAndSortedStations().map(s => s.id));
-
-            stationsData.forEach(station => {
-                if (!filteredIds.has(station.id)) return;
-                const cfg = getStatusConfig(station.status);
-                const selected = selectedStationId === station.id;
-                const size = selected ? 40 : 34;
-                const stale = isStaleStatus(station);
-                const icon = L.divIcon({
-                    className: '',
-                    html: `<div class="custom-leaflet-pin${stale ? ' pin-stale' : ''}" style="width:${size}px;height:${size}px;background:${cfg.hex};"><i class="fa-solid fa-gas-pump text-xs"></i></div>`,
-                    iconSize: [size, size], iconAnchor: [size / 2, size / 2]
-                });
-                // le pompe con notizie fresche stanno sopra a quelle vecchie o da verificare, se si sovrappongono
-                const z = selected ? 1000 : station.status === 'unverified' ? 0 : stale ? 100 : 500;
-                const marker = L.marker([station.lat, station.lng], { icon, zIndexOffset: z, title: station.name }).addTo(leafletMap);
-                marker.on('click', () => window.handlePinClick(station.id));
-                leafletMarkers[station.id] = marker;
-            });
-        }
-
-        function queueBadge(st, withTime) {
-            if (st.status === 'closed' || !QUEUE_LABELS[st.queueLevel]) return '';
-            const busy = st.queueLevel !== 'Scorrevole';
-            const when = withTime && st.queueTs ? ` · ${esc(formatRelativeTime(st.queueTs).toLowerCase())}` : '';
-            return `<span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold border ${busy ? 'bg-amber-50 text-amber-900 border-amber-200' : 'bg-emerald-50 text-emerald-800 border-emerald-200'}"><i class="fa-solid fa-car-side mr-1 ${busy ? 'text-amber-600' : 'text-emerald-600'}"></i>${esc(QUEUE_LABELS[st.queueLevel])}${when}</span>`;
-        }
-
-        // Pulsanti per segnalare la coda nella scheda piccola
-        function queueButtons(st) {
-            const id = esc(st.id);
-            const mine = myVoteOf(st);
-            const chosen = (bannerQueue && bannerQueue.id === st.id) ? bannerQueue.q : (mine && mine.status !== 'closed' ? mine.queueLevel : null);
-            return `<div class="flex items-center gap-1 flex-wrap" role="group" aria-label="Segnala la coda">
-                <span class="text-[11px] font-bold text-slate-600 mr-0.5"><i class="fa-solid fa-car-side"></i> Coda:</span>
-                ${QUEUE_CHOICES.map(q => `<button onclick="window.setBannerQueue('${id}', '${q}')" aria-pressed="${chosen === q}" class="px-2 py-1 rounded-lg text-[11px] font-bold border transition active:scale-95 ${chosen === q ? 'bg-slate-900 text-amber-400 border-slate-900' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'}">${QUEUE_LABELS[q]}</button>`).join('')}
-            </div>`;
-        }
-
-        // Pulsanti di voto con contatore (voti recenti in grande, voti precedenti in ombra)
-        function flagButtons(st, compact) {
-            const id = esc(st.id);
-            const mine = (myVoteOf(st) || {}).status;
-            const counts = voteCounts(st);
-            const defs = [
-                ['available', '🟢 Aperta', 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100', 'bg-emerald-600 text-white'],
-                ['limited', '🟡 Limitata', 'bg-amber-50 text-amber-800 hover:bg-amber-100', 'bg-amber-500 text-white'],
-                ['closed', '🔴 Esaurita', 'bg-rose-50 text-rose-800 hover:bg-rose-100', 'bg-rose-600 text-white']
-            ];
-            return `<div class="grid grid-cols-3 gap-1.5 ${compact ? 'min-w-[260px]' : ''}" role="group" aria-label="Vota lo stato">${defs.map(([k, label, idle, on]) => `
-                <button onclick="window.quickInstantFlag('${id}', '${k}')" aria-pressed="${mine === k}" title="${mine === k ? 'Il tuo voto: tocca di nuovo per toglierlo' : 'Vota: ' + label.slice(3)}" class="px-2 py-2 rounded-xl text-[11px] sm:text-xs font-bold border transition active:scale-95 ${mine === k ? on + ' border-transparent ring-2 ring-slate-900/30' : idle + ' border-transparent'}">
-                    <span class="block leading-tight">${label}</span>
-                    <span class="mt-0.5 block font-mono text-sm font-extrabold">${counts[k]}</span>
-                    ${mine === k ? '<span class="block text-[10px] font-semibold leading-none opacity-90">il tuo voto</span>' : ''}
-                </button>`).join('')}</div>`;
-        }
-
-        // Barra di distribuzione dei voti: verde / giallo / rosso (i voti precedenti restano, sbiaditi)
-        function voteBar(counts) {
-            const ks = [['available', 'bg-emerald-500'], ['limited', 'bg-amber-400'], ['closed', 'bg-rose-600']];
-            const act = ks.map(([k, c]) => counts[k] ? `<i class="block ${c}" style="flex:${counts[k]}"></i>` : '').join('');
-            const old = ks.map(([k, c]) => counts.old[k] ? `<i class="block ${c} opacity-30" style="flex:${counts.old[k]}"></i>` : '').join('');
-            if (!act && !old) return '';
-            return `<div class="flex h-2 rounded-full overflow-hidden gap-0.5 bg-slate-100" aria-hidden="true">${act}${old}</div>`;
-        }
-
-        function updateMapQuickBanner() {
-            const banner = document.getElementById('mapQuickBanner');
-            if (!selectedStationId) return banner.classList.add('hidden');
-            const st = stationsData.find(s => s.id === selectedStationId);
-            if (!st) return banner.classList.add('hidden');
-
-            const cfg = getStatusConfig(st.status);
-            const lv = lastVoteOf(st);
-            const timeInfo = lv ? `Ultimo voto: <strong>${esc(formatRelativeTime(lv.ts))}</strong> (${esc(formatExactTime(lv.ts))})` : `<strong>Nessun voto ancora</strong>`;
-
-            banner.classList.remove('hidden');
-            banner.innerHTML = `
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                    <div class="flex items-start gap-2.5">
-                        <span class="w-9 h-9 rounded-xl flex items-center justify-center text-white shrink-0 font-bold shadow-xs" style="background:${cfg.hex}">
-                            <i class="fa-solid fa-gas-pump"></i>
-                        </span>
-                        <div>
-                            <div class="flex items-center gap-2 flex-wrap">
-                                <h4 class="text-xs sm:text-sm font-extrabold text-slate-900">${esc(st.name)}</h4>
-                                <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold border ${cfg.badgeClass}">${cfg.emoji} ${cfg.label}</span>
-                            </div>
-                            <p class="text-[11px] text-slate-600">${esc(st.address)} (${esc(st.zone)}) • ${timeInfo}</p>
-                            ${queueBadge(st, true) ? `<div class="mt-1">${queueBadge(st, true)}</div>` : ''}
-                        </div>
+            <div class="mt-4 rounded-2xl border ${s.ring} ${s.bg} p-4">
+                <div class="flex items-center gap-3">
+                    <span class="w-12 h-12 rounded-full ${s.solid} ${stale ? 'opacity-50' : ''} text-white text-xl flex items-center justify-center shrink-0"><i class="fa-solid ${s.icon}"></i></span>
+                    <div>
+                        <div class="text-[20px] font-extrabold ${s.text}">${s.label}</div>
+                        <div class="text-[13px] text-slate-600">${st.lastUpdated ? `Ultimo voto ${ago(st.lastUpdated)} (alle ${clock(st.lastUpdated)})` : 'Ancora nessuna segnalazione'}</div>
                     </div>
-                    <div class="flex flex-col gap-1.5 shrink-0">
-                        ${flagButtons(st, true)}
-                        <div class="flex items-center justify-between gap-1.5 flex-wrap">
-                            ${queueButtons(st)}
-                            <button onclick="window.openStationModal('${esc(st.id)}')" class="px-2.5 py-1.5 rounded-lg bg-slate-900 text-amber-400 text-[11px] font-bold">Dettagli <i class="fa-solid fa-chevron-right text-[9px]"></i></button>
-                        </div>
+                </div>
+                ${stale ? '<p class="mt-3 text-[13px] font-semibold text-amber-800"><i class="fa-solid fa-clock-rotate-left mr-1"></i>Notizia di più di 3 ore fa: se sei lì, confermala o correggila.</p>' : ''}
+                ${q ? `<p class="mt-3 text-[14px] font-semibold ${st.queueLevel === 'Scorrevole' ? 'text-emerald-800' : 'text-amber-800'}"><i class="fa-solid fa-car-side mr-1.5"></i>${esc(q)}${st.queueTs ? ` <span class="font-normal text-slate-500">· ${ago(st.queueTs)}</span>` : ''}</p>` : ''}
+                ${fuels.length ? `<p class="mt-2 flex flex-wrap gap-1.5">${fuels.map(([k, l]) => `<span class="px-2 py-0.5 rounded-lg text-[13px] font-semibold ${st.fuels[k] ? 'bg-white text-emerald-800' : 'bg-white/60 text-slate-400 line-through'}">${l}</span>`).join('')}</p>` : ''}
+                ${note ? `<p class="mt-2 text-[14px] text-slate-700 italic">"${esc(note)}"</p>` : ''}
+                ${total ? `<p class="mt-3 text-[12px] text-slate-500">Voti che contano: ${counts.available} aperta · ${counts.limited} code · ${counts.closed} esaurita <button onclick="openHowItWorks()" class="underline">come si decide</button></p>` : ''}
+                ${oldTotal ? `<p class="mt-1.5 text-[12px] text-slate-500"><i class="fa-solid fa-clock-rotate-left mr-1"></i>${oldTotal} ${oldTotal === 1 ? 'voto precedente' : 'voti precedenti'} (${oldText}) non ${oldTotal === 1 ? 'conta' : 'contano'} più: nessuno aveva confermato lo stato per 45 minuti, e il voto arrivato dopo ha fatto ripartire il conteggio.</p>` : ''}
+            </div>
+
+            <div class="mt-5">
+                <h3 class="text-[16px] font-extrabold">${mine ? 'Il tuo voto' : 'Sei lì adesso? Com’è la situazione?'}</h3>
+                <p class="text-[13px] text-slate-500 mb-2.5">${mine ? `Hai votato ${ago(mine.ts)}. Puoi cambiarlo quando vuoi.` : 'Un tocco basta: il voto vale per tutti i cittadini.'}</p>
+                <div class="grid grid-cols-3 gap-2">
+                    ${['available', 'limited', 'closed'].map(k => {
+                        const on = mine && mine.status === k, c = STATUS[k];
+                        return `<button onclick="vote('${k}')" aria-pressed="${!!on}" class="h-20 rounded-2xl border-2 flex flex-col items-center justify-center gap-1 text-[14px] font-bold transition active:scale-95 ${on ? `${c.solid} border-transparent text-white` : `bg-white ${c.ring} ${c.text}`}"><i class="fa-solid ${c.icon} text-lg"></i>${c.short}${on ? '<span class="text-[11px] font-semibold opacity-90">il tuo voto</span>' : ''}</button>`;
+                    }).join('')}
+                </div>
+                ${detailsOpen ? `
+                <div class="mt-3 rounded-2xl bg-slate-50 border border-slate-200 p-3.5 space-y-3">
+                    <div>
+                        <div class="text-[14px] font-bold mb-1.5"><i class="fa-solid fa-gas-pump mr-1 text-slate-500"></i>Quali carburanti ci sono?</div>
+                        <div class="flex flex-wrap gap-1.5">${[['benzina', 'Benzina'], ['diesel', 'Diesel'], ['gpl', 'GPL']].map(([k, l]) => { const on = draft.fuels[k] === true; return `<label class="inline-flex items-center gap-2 h-11 px-3 rounded-xl border bg-white text-[14px] font-semibold cursor-pointer ${on ? 'border-emerald-500 text-emerald-800' : 'border-slate-300 text-slate-500'}"><input type="checkbox" ${on ? 'checked' : ''} onchange="toggleFuel('${k}', this.checked)" class="w-5 h-5 accent-emerald-600">${l}</label>`; }).join('')}</div>
                     </div>
-                </div>`;
+                    <div>
+                        <div class="text-[14px] font-bold mb-1.5"><i class="fa-solid fa-car-side mr-1 text-slate-500"></i>C’è coda?</div>
+                        <div class="flex flex-wrap gap-1.5">${QUEUE_CHOICES.map(qq => `<button onclick="setQueue('${qq}')" aria-pressed="${draft.queue === qq}" class="h-10 px-3 rounded-xl border text-[13px] font-semibold ${draft.queue === qq ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white border-slate-300 hover:bg-slate-100'}">${QUEUE_LABELS[qq]}</button>`).join('')}</div>
+                    </div>
+                    ${mine ? '' : '<p class="text-[13px] text-slate-500"><i class="fa-solid fa-arrow-up mr-1"></i>Tocca Aperta o Code qui sopra per inviare: carburanti e coda partono insieme al voto.</p>'}
+                </div>` : ''}
+                ${mine ? '<button onclick="vote(null)" class="mt-3 text-[13px] font-semibold text-red-700 underline">Togli il mio voto</button>' : ''}
+            </div>
+        </div>`);
+}
+
+// bozza di carburanti e coda per chi non ha ancora votato (si azzera cambiando pompa)
+let draftState = null;
+function draftFor(st, mine) {
+    if (mine && mine.status !== 'closed') return { fuels: { benzina: mine.fuels?.benzina === true, diesel: mine.fuels?.diesel === true, gpl: mine.fuels?.gpl === true }, queue: mine.queueLevel };
+    if (!draftState || draftState.id !== st.id) draftState = { id: st.id, fuels: { benzina: true, diesel: true, gpl: false }, queue: null };
+    return draftState;
+}
+
+// voto: si salva subito al primo tocco; coda e carburanti lo aggiornano dopo
+async function sendVote(stationId, v, previous) {
+    const i = stations.findIndex(s => s.id === stationId);
+    if (i === -1) return false;
+    if (!myVoterId) { toast('Il dispositivo non è pronto: ricarica la pagina.'); return false; }
+    const before = stations[i];
+    stations[i] = applyVoteToStation(before, myVoterId, v);
+    render(); if (openId === stationId) renderStationSheet();
+    pendingVotes++;
+    try {
+        const data = await apiPost('/api/vote', { stationId, vote: v });
+        const j = stations.findIndex(s => s.id === stationId);
+        if (j !== -1 && data.station) stations[j] = fromApi(data.station);
+        return true;
+    } catch (e) {
+        const j = stations.findIndex(s => s.id === stationId);
+        if (j !== -1) stations[j] = before;
+        toast('Voto NON salvato: ' + e.message);
+        return false;
+    } finally {
+        pendingVotes--;
+        render(); if (openId === stationId) renderStationSheet();
+    }
+}
+window.vote = async function (status) {
+    const st = stations.find(s => s.id === openId);
+    if (!st) return;
+    const prev = myVote(st);
+    if (status && prev && prev.status === status) return; // già votato così: si cambia coda/carburanti sotto
+    const v = status === null ? null : {
+        status, ts: Date.now(),
+        fuels: status === 'closed' ? { benzina: false, diesel: false, gpl: false } : { ...(prev && prev.status !== 'closed' ? draftFor(st, prev) : draftFor(st, null)).fuels },
+        queueLevel: status === 'closed' ? 'Nessuna' : ((prev && prev.status !== 'closed' ? prev.queueLevel : draftFor(st, null).queue) || 'Non indicata'),
+        note: status === 'available' ? 'Aperta.' : status === 'limited' ? 'Limitata.' : 'Chiusa.',
+    };
+    const id = st.id;
+    if (await sendVote(id, v)) {
+        toast(status ? `Voto registrato: ${STATUS[status].short}` : 'Voto tolto', 'Annulla', () => sendVote(id, prev ? { ...prev, ts: Date.now() } : null));
+    }
+};
+window.setQueue = async function (q) {
+    const st = stations.find(s => s.id === openId), mine = st && myVote(st);
+    if (!st) return;
+    if (!mine || mine.status === 'closed') { draftFor(st, null).queue = q; renderStationSheet(); return; }
+    if (mine.queueLevel === q) return;
+    if (await sendVote(st.id, { ...mine, queueLevel: q, ts: Date.now() })) toast(`Grazie: ${QUEUE_LABELS[q].toLowerCase()}`);
+};
+window.toggleFuel = async function (k, on) {
+    const st = stations.find(s => s.id === openId), mine = st && myVote(st);
+    if (!st) return;
+    if (!mine || mine.status === 'closed') { draftFor(st, null).fuels[k] = on; renderStationSheet(); return; }
+    const fuels = { ...draftFor(st, mine).fuels, [k]: on };
+    await sendVote(st.id, { ...mine, fuels, ts: Date.now() });
+};
+
+window.shareStation = async function () {
+    const st = stations.find(s => s.id === openId);
+    if (!st) return;
+    const url = `${location.origin}/?p=${encodeURIComponent(st.id)}`;
+    const text = `⛽ ${st.name}: ${STATUS[st.status].label.toLowerCase()}${st.lastUpdated ? ` (${ago(st.lastUpdated)})` : ''}. Guarda e aggiorna anche tu:`;
+    if (navigator.share) { try { await navigator.share({ title: 'Benzina Benevento Live', text, url }); return; } catch (e) { if (e.name === 'AbortError') return; } }
+    try { await navigator.clipboard.writeText(`${text} ${url}`); toast('Link copiato: incollalo dove vuoi.'); }
+    catch (e) { window.open(`https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`, '_blank', 'noopener'); }
+};
+
+function openFromUrl() {
+    const id = new URLSearchParams(location.search).get('p');
+    if (id && stations.some(s => s.id === id)) { history.replaceState(null, '', location.pathname); openStation(id); }
+}
+
+// ---------- come funziona ----------
+window.openHowItWorks = function () {
+    sheetMode = 'help'; openId = null;
+    pushSheetState();
+    showSheet(`
+        <div class="px-5 pt-2 pb-safe">
+            <div class="flex items-start gap-3"><h2 id="sheetTitle" class="flex-1 text-[20px] font-extrabold">Come funziona</h2>${closeBtn}</div>
+            <div class="mt-3 space-y-3 text-[15px] text-slate-700">
+                <p><strong>Lo stato lo segnalano i cittadini.</strong> Chi passa davanti a una pompa la vota: Aperta, Code o Esaurita. Non serve registrarsi.</p>
+                <p><strong>Un voto a persona per pompa.</strong> Puoi cambiarlo o toglierlo quando vuoi.</p>
+                <p><strong>Vince lo stato con più voti.</strong> A parità vince il più prudente (Esaurita, poi Code, poi Aperta): meglio non mandare nessuno a vuoto.</p>
+                <p><strong>Le notizie invecchiano.</strong> Se per 45 minuti nessuno conferma lo stato, il primo voto diverso lo cambia subito. Dopo 3 ore senza conferme la pompa appare tratteggiata: la notizia potrebbe non valere più.</p>
+                <p><strong>Code e carburanti</strong> sono quelli indicati nell’ultima segnalazione.</p>
+                <p class="text-[13px] text-slate-500">Il sito non chiede nomi né account. Per riconoscere il tuo voto usa un codice casuale salvato solo sul tuo telefono.</p>
+            </div>
+        </div>`);
+};
+
+// ---------- nuovo distributore ----------
+// Facile ma con dati controllati: comune scelto dall'elenco dei 78 comuni, via scelta tra quelle vere
+// trovate su OpenStreetMap (oppure dalla posizione del telefono), posizione confermata sulla mappa,
+// avviso se la pompa c'è già. Il server ripete i controlli (lib/benzina.ts).
+const BRANDS = ['Eni', 'Q8', 'Esso', 'IP', 'Tamoil', 'Energas', 'Pompa Bianca'];
+const MAX_KM_FROM_COMUNE = 12;
+let addState = null, addMap = null, streetTimer = null;
+
+window.openAddStation = function () {
+    sheetMode = 'add'; openId = null;
+    addState = { step: 1, comune: 'Benevento', streetInput: '', street: null, number: '', fromGps: false, gpsPos: null, name: '', brand: '', pos: null, zone: '', status: undefined, fuels: { benzina: true, diesel: true, gpl: false }, dupConfirmed: false, suggestions: [] };
+    pushSheetState();
+    renderAddSheet();
+};
+
+const fieldCls = 'mt-1 w-full h-12 px-3 rounded-xl border border-slate-300 bg-white text-[16px] focus:outline-none focus:ring-2 focus:ring-amber-400';
+function addStep1Ready() { const a = addState; return a.street && findComune(a.comune) && a.name.trim().length >= 3 && a.brand; }
+
+function renderAddSheet() {
+    const a = addState;
+    const near = a.pos ? stations.filter(s => km(s, a.pos) < 0.2) : [];
+    const head = `<div class="flex items-start gap-3"><div class="flex-1"><h2 id="sheetTitle" class="text-[20px] font-extrabold">Segnala una pompa che manca</h2><p class="text-[13px] text-slate-500">Passo ${a.step} di 2 · ${a.step === 1 ? 'dove si trova' : 'conferma e stato'}</p></div>${closeBtn}</div>`;
+    if (a.step === 1) {
+        showSheet(`<div class="px-5 pt-2 pb-safe">${head}
+            <button onclick="addUseMyPosition()" id="addGpsBtn" class="mt-4 w-full h-12 rounded-xl border-2 border-blue-600 text-blue-700 text-[15px] font-bold"><i class="fa-solid fa-location-crosshairs mr-1.5"></i>Sono alla pompa: usa la mia posizione</button>
+            <p class="text-[12px] text-slate-500 mt-1 text-center">Trova da sola comune e via. Oppure scegli qui sotto.</p>
+            <div class="mt-4 space-y-3">
+                <label class="block"><span class="text-[14px] font-bold">Comune *</span>
+                    <select id="addComune" onchange="addSetComune(this.value)" class="${fieldCls}">
+                        ${COMUNI.map(c => `<option ${comuneKey(c.nome) === comuneKey(a.comune) ? 'selected' : ''}>${esc(c.nome)}</option>`).join('')}
+                    </select></label>
+                <div class="relative">
+                    <label class="block"><span class="text-[14px] font-bold">Via *</span>
+                        <input id="addStreet" autocomplete="off" value="${esc(a.street ? a.street.name : a.streetInput)}" oninput="addStreetInput(this.value)" placeholder="Inizia a scrivere, poi scegli dall'elenco" class="${fieldCls} ${a.street ? 'border-emerald-500' : ''}"></label>
+                    ${a.street ? `<p class="text-[12px] text-emerald-700 mt-1"><i class="fa-solid fa-check mr-1"></i>Via trovata a ${esc(a.comune)}${a.fromGps ? ' (dalla tua posizione)' : ''}</p>` : '<p class="text-[12px] text-slate-500 mt-1">La via deve esistere: sceglila tra i suggerimenti.</p>'}
+                    <ul id="addSuggestions" class="${a.suggestions.length && !a.street ? '' : 'hidden'} absolute z-10 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-56 overflow-y-auto">
+                        ${a.suggestions.map((sg, i) => `<li><button type="button" onclick="addPickStreet(${i})" class="w-full text-left px-3 py-2.5 text-[15px] hover:bg-slate-50 border-b border-slate-100">${esc(sg.name)}${sg.suburb ? ` <span class="text-slate-400 text-[13px]">· ${esc(sg.suburb)}</span>` : ''}</button></li>`).join('')}
+                    </ul>
+                </div>
+                <label class="block"><span class="text-[14px] font-bold">Numero civico</span> <span class="text-[13px] text-slate-500">(se lo sai)</span>
+                    <input id="addNumber" inputmode="numeric" maxlength="8" value="${esc(a.number)}" oninput="addState.number=this.value" class="${fieldCls}"></label>
+                <label class="block"><span class="text-[14px] font-bold">Nome del distributore *</span>
+                    <input id="addName" maxlength="50" value="${esc(a.name)}" oninput="addState.name=this.value; addRefreshNext()" placeholder="Es. Oroil, Ghepardoil" class="${fieldCls}"></label>
+                <label class="block"><span class="text-[14px] font-bold">Marchio *</span>
+                    <select id="addBrand" onchange="addState.brand=this.value; addRefreshNext()" class="${fieldCls}">
+                        <option value="" ${a.brand ? '' : 'selected'} disabled>Scegli…</option>
+                        ${BRANDS.map(b => `<option value="${b}" ${a.brand === b ? 'selected' : ''}>${b === 'Pompa Bianca' ? 'Altro / pompa bianca' : b}</option>`).join('')}
+                    </select></label>
+                <button id="addNextBtn" onclick="addGoStep2()" ${addStep1Ready() ? '' : 'disabled'} class="w-full h-12 rounded-xl bg-slate-900 text-white text-[15px] font-bold disabled:opacity-40">Continua</button>
+            </div></div>`);
+        return;
+    }
+    showSheet(`<div class="px-5 pt-2 pb-safe">${head}
+        <p class="mt-3 text-[15px]"><strong>${esc(a.name)}</strong> · ${esc(a.street.name)}${a.number ? ' ' + esc(a.number) : ''}, ${esc(a.comune)}</p>
+        <div id="addMap" class="mt-2 h-52 rounded-2xl overflow-hidden border border-slate-200"></div>
+        <p class="text-[13px] text-slate-500 mt-1.5"><i class="fa-solid fa-hand-pointer mr-1"></i>Il segnaposto va sulla pompa: se serve, trascinalo (solo vicino alla via scelta).</p>
+        ${near.length ? `<div class="mt-3 rounded-2xl bg-amber-50 border border-amber-300 p-3 text-[14px]">
+            <strong><i class="fa-solid fa-triangle-exclamation mr-1 text-amber-600"></i>Forse c’è già:</strong>
+            ${near.map(s => `<button onclick="openStation('${esc(s.id)}')" class="block mt-1.5 text-left underline">${esc(s.name)} · ${esc(s.address)}</button>`).join('')}
+            <label class="flex items-center gap-2 mt-2.5 font-semibold"><input type="checkbox" ${a.dupConfirmed ? 'checked' : ''} onchange="addState.dupConfirmed=this.checked; renderAddSheet()" class="w-5 h-5 accent-amber-600"> No, è un’altra pompa</label>
+        </div>` : ''}
+        <div class="mt-4"><span class="text-[14px] font-bold">Com’è adesso? *</span>
+            <div class="grid grid-cols-4 gap-1.5 mt-1">${[['available', 'Aperta'], ['limited', 'Code'], ['closed', 'Esaurita'], [null, 'Non so']].map(([k, l]) => `<button onclick="addState.status=${k ? `'${k}'` : 'null'}; renderAddSheet()" class="h-12 rounded-xl border text-[13px] font-bold ${a.status === k ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white border-slate-300'}">${l}</button>`).join('')}</div>
+        </div>
+        ${a.status === 'available' || a.status === 'limited' ? `<div class="mt-3"><span class="text-[14px] font-bold">Quali carburanti ci sono?</span>
+            <div class="flex flex-wrap gap-1.5 mt-1">${[['benzina', 'Benzina'], ['diesel', 'Diesel'], ['gpl', 'GPL']].map(([k, l]) => `<label class="inline-flex items-center gap-2 h-11 px-3 rounded-xl border bg-white text-[14px] font-semibold ${a.fuels[k] ? 'border-emerald-500 text-emerald-800' : 'border-slate-300 text-slate-500'}"><input type="checkbox" ${a.fuels[k] ? 'checked' : ''} onchange="addState.fuels.${k}=this.checked; renderAddSheet()" class="w-5 h-5 accent-emerald-600">${l}</label>`).join('')}</div></div>` : ''}
+        <div class="flex gap-2 mt-5">
+            <button onclick="addState.step=1; renderAddSheet()" class="h-12 px-4 rounded-xl bg-slate-100 font-bold">Indietro</button>
+            <button id="addSaveBtn" onclick="addSave()" ${a.status === undefined || (near.length && !a.dupConfirmed) ? 'disabled' : ''} class="flex-1 h-12 rounded-xl bg-amber-400 text-slate-900 text-[15px] font-extrabold disabled:opacity-40">Aggiungi alla mappa</button>
+        </div>
+        ${a.status === undefined ? '<p class="text-[12px] text-slate-500 mt-1.5 text-center">Scegli com’è adesso (anche “Non so”).</p>' : ''}
+    </div>`);
+    setTimeout(() => {
+        // se nel frattempo la scheda è stata ridisegnata, la mappa è già sul riquadro nuovo
+        const el = $('addMap');
+        if (!el || el._leaflet_id) return;
+        addMap = L.map('addMap', { zoomControl: false, attributionControl: false }).setView([a.pos.lat, a.pos.lng], 17);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(addMap);
+        const anchor = a.anchor;
+        L.marker([a.pos.lat, a.pos.lng], { draggable: true, icon: L.divIcon({ className: '', html: '<div class="pin pin-unverified"><i class="fa-solid fa-gas-pump"></i></div>', iconSize: [34, 34], iconAnchor: [17, 17] }) })
+            .on('dragend', (e) => {
+                const ll = e.target.getLatLng();
+                if (km({ lat: ll.lat, lng: ll.lng }, anchor) > 0.6) { e.target.setLatLng([a.pos.lat, a.pos.lng]); toast('Il segnaposto deve restare vicino alla via scelta.'); return; }
+                a.pos = { lat: ll.lat, lng: ll.lng }; renderAddSheet();
+            }).addTo(addMap);
+    }, 50);
+}
+function addRefreshNext() { const b = $('addNextBtn'); if (b) b.disabled = !addStep1Ready(); }
+
+async function nominatim(params) {
+    const res = await fetch('https://nominatim.openstreetmap.org/' + params + '&accept-language=it', { signal: AbortSignal.timeout(8000) });
+    return res.ok ? res.json() : null;
+}
+const placeOf = (ad) => ad.city || ad.town || ad.village || ad.municipality || '';
+
+window.addSetComune = function (name) {
+    const a = addState;
+    a.comune = name; a.street = null; a.fromGps = false; a.suggestions = [];
+    a.name = $('addName').value; a.number = $('addNumber').value;
+    renderAddSheet();
+};
+// suggerimenti di vie vere nel comune scelto mentre si scrive: Photon (dati OpenStreetMap, accetta parole
+// a metà); si tengono solo le strade di quel comune
+window.addStreetInput = function (v) {
+    const a = addState;
+    a.streetInput = v; a.street = null; a.fromGps = false;
+    addRefreshNext();
+    clearTimeout(streetTimer);
+    if (v.trim().length < 3) { a.suggestions = []; $('addSuggestions').classList.add('hidden'); return; }
+    streetTimer = setTimeout(async () => {
+        const c = findComune(a.comune);
+        let feats = [];
+        try {
+            const url = `https://photon.komoot.io/api/?q=${encodeURIComponent(v.trim())}&limit=15&osm_tag=highway${c ? `&lat=${c.lat}&lon=${c.lng}` : ''}`;
+            const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+            if (res.ok) feats = (await res.json()).features || [];
+        } catch (e) { console.warn('Suggerimenti vie non disponibili', e); }
+        if (addState !== a || a.streetInput !== v) return;
+        const seen = new Set();
+        a.suggestions = feats.filter(f => f.properties?.name && comuneKey(f.properties.city || f.properties.town || f.properties.village || '') === comuneKey(a.comune))
+            .map(f => ({ name: f.properties.name, suburb: f.properties.district || f.properties.locality || '', lat: f.geometry.coordinates[1], lng: f.geometry.coordinates[0] }))
+            .filter(sg => { const k = sg.name + sg.suburb; if (seen.has(k)) return false; seen.add(k); return true; })
+            .slice(0, 8);
+        const ul = $('addSuggestions');
+        if (!ul) return;
+        ul.innerHTML = a.suggestions.length
+            ? a.suggestions.map((sg, i) => `<li><button type="button" onclick="addPickStreet(${i})" class="w-full text-left px-3 py-2.5 text-[15px] hover:bg-slate-50 border-b border-slate-100">${esc(sg.name)}${sg.suburb ? ` <span class="text-slate-400 text-[13px]">· ${esc(sg.suburb)}</span>` : ''}</button></li>`).join('')
+            : `<li class="px-3 py-2.5 text-[14px] text-slate-500">Nessuna via così a ${esc(a.comune)}. Controlla il nome o il comune.</li>`;
+        ul.classList.remove('hidden');
+    }, 600);
+};
+window.addPickStreet = function (i) {
+    const a = addState, sg = a.suggestions[i];
+    a.street = sg; a.streetInput = sg.name; a.fromGps = false; a.gpsPos = null; a.suggestions = [];
+    a.name = $('addName').value; a.number = $('addNumber').value;
+    renderAddSheet();
+};
+// "Sono alla pompa": posizione del telefono → comune e via; la pompa va esattamente lì
+window.addUseMyPosition = function () {
+    if (!navigator.geolocation) return toast('Questo browser non può dare la posizione.');
+    const btn = $('addGpsBtn'); btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1.5"></i>Cerco la tua posizione…';
+    const done = () => { if ($('addGpsBtn')) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-location-crosshairs mr-1.5"></i>Sono alla pompa: usa la mia posizione'; } };
+    navigator.geolocation.getCurrentPosition(async (p) => {
+        const pos = { lat: p.coords.latitude, lng: p.coords.longitude };
+        try {
+            const rev = await nominatim(`reverse?format=jsonv2&zoom=18&addressdetails=1&lat=${pos.lat}&lon=${pos.lng}`);
+            const ad = rev?.address || {};
+            const c = findComune(placeOf(ad));
+            if (!c) { toast('Sei fuori dalla provincia di Benevento: qui si segnalano solo pompe del Sannio.'); return; }
+            if (!ad.road) { toast('Non trovo la via qui: sceglila a mano.'); return; }
+            const a = addState;
+            a.name = $('addName').value;
+            Object.assign(a, { comune: c.nome, street: { name: ad.road, suburb: ad.suburb || ad.hamlet || '', lat: pos.lat, lng: pos.lng }, streetInput: ad.road, number: ad.house_number || '', fromGps: true, gpsPos: pos, suggestions: [] });
+            renderAddSheet();
+            toast(`Trovato: ${ad.road}, ${c.nome}`);
+        } catch (e) { toast('Ricerca non riuscita: riprova o scegli a mano.'); }
+        finally { done(); }
+    }, (err) => { done(); toast(err.code === 1 ? 'Accesso alla posizione negato: scegli comune e via a mano.' : 'Non riesco a trovarti: scegli comune e via a mano.'); },
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+};
+
+window.addGoStep2 = async function () {
+    const a = addState;
+    a.name = $('addName').value.trim(); a.number = $('addNumber').value.trim();
+    if (!addStep1Ready()) return;
+    const btn = $('addNextBtn'); btn.disabled = true; btn.textContent = 'Cerco la pompa…';
+    try {
+        let pos = a.gpsPos || { lat: a.street.lat, lng: a.street.lng };
+        if (!a.gpsPos && a.number) {
+            const h = await nominatim(`search?format=jsonv2&addressdetails=1&limit=3&countrycodes=it&street=${encodeURIComponent(a.number + ' ' + a.street.name)}&city=${encodeURIComponent(a.comune)}`).catch(() => null);
+            const hit = (h || []).find(x => comuneKey(placeOf(x.address || {})) === comuneKey(a.comune));
+            if (hit) pos = { lat: Number(hit.lat), lng: Number(hit.lon) };
         }
-
-        function renderStationsList() {
-            const container = document.getElementById('stationsListContainer');
-            if (!container) return;
-            if (!dataLoaded) {
-                container.innerHTML = `
-                    <div class="bg-white rounded-2xl border border-slate-200 p-8 text-center space-y-2" role="status">
-                        <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto text-lg"><i class="fa-solid ${loadFailed ? 'fa-plug-circle-exclamation' : 'fa-gas-pump animate-pulse'}"></i></div>
-                        <h3 class="text-sm font-bold text-slate-800">${loadFailed ? 'Non riesco a caricare i distributori' : 'Caricamento distributori…'}</h3>
-                        ${loadFailed ? '<p class="text-xs text-slate-500">Controlla la connessione: riprovo da solo tra pochi secondi.</p>' : ''}
-                    </div>`;
-                return;
-            }
-            const filtered = getFilteredAndSortedStations();
-
-            if (filtered.length === 0) {
-                container.innerHTML = `
-                    <div class="bg-white rounded-2xl border border-slate-200 p-8 text-center space-y-2">
-                        <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto text-lg"><i class="fa-solid fa-gas-pump"></i></div>
-                        <h3 class="text-sm font-bold text-slate-800">Nessun distributore in questo filtro</h3>
-                        <button onclick="window.resetFilters()" class="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-bold">Mostra tutti</button>
-                    </div>`;
-                return;
-            }
-
-            const DEFAULT_NOTES = ['Aperta.', 'Limitata.', 'Chiusa.', 'Aggiornata.'];
-            let html = '';
-            filtered.forEach(st => {
-                const effectiveStatus = st.status || 'unverified';
-                const cfg = getStatusConfig(effectiveStatus);
-                const isSelected = selectedStationId === st.id;
-                const fuels = st.fuels || { benzina: null, diesel: null, gpl: null };
-                const id = esc(st.id);
-                const counts = voteCounts(st);
-                const total = counts.available + counts.limited + counts.closed;
-                const lv = lastVoteOf(st);
-                const lastCfg = lv ? getStatusConfig(lv.status) : null;
-                // "vecchio" = lo stato in vigore non riceve conferme da 45 minuti: un voto diverso lo cambierebbe subito
-                const isStale = effectiveStatus !== 'unverified' && st.lastUpdated && (Date.now() - st.lastUpdated) >= VOTE_WINDOW_MS;
-                const mine = myVoteOf(st);
-
-                let fuelSectionHtml = effectiveStatus === 'unverified'
-                    ? `<div class="flex items-center gap-1.5 text-[11px] text-slate-500 bg-slate-50 px-2.5 py-1.5 rounded-xl border border-dashed border-slate-300"><i class="fa-regular fa-circle-question text-slate-400"></i><span>Nessun voto ancora: se sei qui, segnala com'è la situazione.</span></div>`
-                    : `<div class="flex flex-wrap items-center gap-1.5 text-[11px]">
-                        <span class="px-2 py-0.5 rounded-md font-bold ${fuels.benzina ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-slate-100 text-slate-400 line-through'}">Benzina ${fuels.benzina ? '✓' : '✗'}</span>
-                        <span class="px-2 py-0.5 rounded-md font-bold ${fuels.diesel ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-slate-100 text-slate-400 line-through'}">Diesel ${fuels.diesel ? '✓' : '✗'}</span>
-                        ${fuels.gpl ? `<span class="px-2 py-0.5 rounded-md font-bold bg-blue-50 text-blue-800 border-blue-200">GPL ✓</span>` : ''}
-                        ${queueBadge(st, false)}
-                       </div>`;
-
-                html += `
-                    <div id="station-card-${id}" class="bg-white rounded-2xl border ${isSelected ? 'border-slate-900 ring-2 ring-slate-900/15' : 'border-slate-200'} ${cfg.cardBorderClass} p-3.5 shadow-xs hover:shadow-md transition flex flex-col gap-2.5">
-                        <div class="flex items-start justify-between gap-2 cursor-pointer" onclick="window.openStationModal('${id}')">
-                            <div>
-                                <div class="flex items-center gap-1.5 flex-wrap">
-                                    <span class="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase bg-slate-900 text-amber-400">${esc(st.brand || 'Distributore')}</span>
-                                    ${st.isPressSource ? `<span class="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase bg-red-600 text-white"><i class="fa-solid fa-newspaper mr-1"></i>Fonte Stampa</span>` : ''}
-                                    <span class="text-[11px] font-semibold text-slate-500">• ${esc(st.zone)}</span>
-                                    ${userPos ? `<span class="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200"><i class="fa-solid fa-location-arrow mr-0.5"></i>${formatDistance(distanceKm(userPos, st))}</span>` : ''}
-                                </div>
-                                <h3 class="text-sm font-extrabold text-slate-900 mt-0.5 hover:text-red-600 transition">${esc(st.name)}</h3>
-                                <p class="text-xs text-slate-500 flex items-center gap-1"><i class="fa-solid fa-location-dot text-slate-400"></i><span>${esc(st.address)}</span></p>
-                            </div>
-                            <span class="px-2.5 py-1 rounded-xl text-xs font-extrabold border shrink-0 ${cfg.badgeClass}">${cfg.emoji} ${cfg.shortLabel}</span>
-                        </div>
-                        ${voteBar(counts)}
-                        ${fuelSectionHtml}
-                        ${st.lastNote && !DEFAULT_NOTES.includes(st.lastNote) ? `<div class="text-xs ${st.isPressSource ? 'bg-amber-50/90 text-slate-900 border-amber-300 font-medium' : 'bg-slate-50 text-slate-700 border-slate-200/80 italic'} px-3 py-2 rounded-xl border">${st.isPressSource ? '<i class="fa-solid fa-bullhorn text-red-600 mr-1"></i>' : ''}"${esc(st.lastNote)}"</div>` : ''}
-                        ${flagButtons(st)}
-                        ${mine ? `<div class="text-[11px] text-slate-600">Il tuo voto: <strong>${getStatusConfig(mine.status).emoji} ${getStatusConfig(mine.status).shortLabel}</strong> · tocca di nuovo lo stesso pulsante per toglierlo.</div>` : ''}
-                        <div class="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
-                            <div class="text-[11px] ${isStale ? 'text-amber-700 font-semibold' : 'text-slate-500'} flex items-center flex-wrap gap-1.5">
-                                <i class="fa-regular fa-clock text-slate-400"></i>
-                                ${lv ? `<span>Ultimo voto: <strong class="px-1.5 py-0.5 rounded-md border ${lastCfg.badgeClass}">${lastCfg.emoji} ${lastCfg.shortLabel}</strong> ${esc(formatRelativeTime(lv.ts).toLowerCase())}</span><span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-mono text-[10px]"><i class="fa-solid fa-users text-[9px] mr-0.5"></i>${total}</span>${isStale ? '<span>· stato non confermato da oltre 45 min</span>' : ''}` : `<span class="text-slate-500 font-medium">In attesa del primo voto</span>`}
-                            </div>
-                            <button onclick="window.openStationModal('${id}')" class="px-2 py-1 rounded-lg bg-slate-900 text-amber-400 text-[11px] font-bold"><i class="fa-solid fa-pen-to-square"></i> Dettagli</button>
-                        </div>
-                    </div>`;
-            });
-            container.innerHTML = html;
-        }
-
-
-        // clic su una pompa della mappa: si apre la scheda piccola (voto rapido e coda); "Dettagli" apre quella grande
-        window.handlePinClick = function(stationId) {
-            if (selectedStationId !== stationId) bannerQueue = null;
-            selectedStationId = stationId;
-            renderAll();
-        };
-
-        window.resetMapSelection = function() {
-            selectedStationId = null;
-            renderAll();
-            if (!leafletMap) return;
-            const b = cityBounds();
-            if (b) leafletMap.fitBounds(b, { padding: [24, 24], maxZoom: 15 }); else leafletMap.setView([41.1250, 14.7720], 12);
-        };
-
-        // chiude la scheda della pompa senza spostare la mappa
-        window.clearMapSelection = function() {
-            if (!selectedStationId) return;
-            selectedStationId = null;
-            bannerQueue = null;
-            renderAll();
-        };
-
-        // un tocco fuori dalla scheda la chiude; la mappa è gestita da Leaflet (sopra), le finestre
-        // aperte e i pulsanti che selezionano un'altra pompa si occupano da soli della selezione
-        document.addEventListener('click', (e) => {
-            if (!selectedStationId) return;
-            // il percorso del clic si guarda com'era al momento del clic: cliccando una pompa la mappa ridisegna
-            // i segnaposto, e Firefox consegna il clic a un elemento ormai tolto dalla pagina
-            const inside = e.composedPath().some(el => el instanceof Element && el.matches('#mapQuickBanner, #leafletMap, #stationModal, #addStationModal, [onclick], button, a, input, select, label'));
-            if (inside || !e.target.isConnected) return;
-            window.clearMapSelection();
-        });
-
-        window.setFilterStatus = function(status) { currentFilterStatus = status; renderAll(); };
-        window.handleSearchChange = function(val) { currentSearchQuery = val; document.getElementById('clearSearchBtn').classList.toggle('hidden', !val); renderAll(); };
-        window.clearSearch = function() { document.getElementById('searchInput').value = ''; window.handleSearchChange(''); };
-        window.resetFilters = function() { currentFilterStatus = 'all'; window.clearSearch(); renderAll(); };
-        window.handleSortChange = function(val) {
-            if (val !== 'near') { currentSortBy = val; renderStationsList(); return; }
-            // la posizione si chiede solo qui, quando la persona sceglie "Più vicini a me"
-            const select = document.getElementById('sortSelect');
-            const fail = (msg) => { showToast('Posizione non disponibile', msg); select.value = currentSortBy; };
-            if (!navigator.geolocation) return fail('Questo browser non può dare la posizione.');
-            showToast('Cerco la tua posizione…', 'Consenti l’accesso alla posizione se il browser lo chiede.');
-            navigator.geolocation.getCurrentPosition((p) => {
-                userPos = { lat: p.coords.latitude, lng: p.coords.longitude };
-                currentSortBy = 'near';
-                showUserOnMap();
-                renderStationsList();
-                showToast('Ordinati per distanza', 'In cima trovi i distributori più vicini a te.');
-            }, (err) => fail(err.code === 1 ? 'Hai negato l’accesso alla posizione: puoi riattivarlo dalle impostazioni del browser.' : 'Non riesco a trovarti. Riprova all’aperto o tra poco.'),
-            { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
-        };
-
-        function showUserOnMap() {
-            if (!leafletMap || !userPos) return;
-            if (userMarker) userMarker.setLatLng([userPos.lat, userPos.lng]);
-            else userMarker = L.circleMarker([userPos.lat, userPos.lng], { radius: 8, color: '#FFFFFF', weight: 3, fillColor: '#2563EB', fillOpacity: 1 }).addTo(leafletMap).bindTooltip('Tu sei qui');
-            const nearest = getFilteredAndSortedStations()[0];
-            if (nearest) leafletMap.fitBounds(L.latLngBounds([[userPos.lat, userPos.lng], [nearest.lat, nearest.lng]]), { padding: [40, 40], maxZoom: 15 });
-        }
-
-        function formatDistance(km) { return km < 1 ? `${Math.round(km * 1000 / 10) * 10} m` : `${km.toFixed(1).replace('.', ',')} km`; }
-
-        window.openStationModal = function(stationId) {
-            const st = stationsData.find(s => s.id === stationId);
-            if (!st) return;
-            selectedStationId = stationId;
-            modalStationId = stationId;
-            renderLeafletMarkers(); updateMapQuickBanner();
-
-            document.getElementById('modalBrandBadge').textContent = st.brand || 'Distributore';
-            document.getElementById('modalZoneBadge').textContent = st.zone;
-            document.getElementById('modalStationName').textContent = st.name;
-            document.getElementById('modalStationAddress').innerHTML = `${esc(st.address)}`;
-            const mapsQuery = encodeURIComponent(`${st.name} ${st.address} ${st.comune || 'Benevento'}`);
-            document.getElementById('modalGoogleMapsLink').href = `https://www.google.com/maps/search/?api=1&query=${mapsQuery}`;
-
-            const cfg = getStatusConfig(st.status || 'unverified');
-            const cnt = voteCounts(st);
-            const mine = myVoteOf(st);
-            const lv = lastVoteOf(st);
-            const lastInfo = lv
-                ? `Ultima segnalazione: ${getStatusConfig(lv.status).emoji} ${esc(getStatusConfig(lv.status).shortLabel)} · <strong>${esc(formatRelativeTime(lv.ts).toLowerCase())}</strong> (${esc(formatExactTime(lv.ts))})`
-                : 'Nessuna segnalazione ancora';
-            document.getElementById('modalStatusBox').className = `px-5 py-3.5 border-b flex flex-wrap items-center justify-between gap-2 ${cfg.badgeClass}`;
-            document.getElementById('modalStatusBox').innerHTML = `
-                <div class="flex items-center gap-2"><span class="text-lg">${cfg.emoji}</span><div><div class="text-xs font-extrabold uppercase">${cfg.label}</div>${queueBadge(st, true) ? `<div class="my-1">${queueBadge(st, true)}</div>` : ''}<div class="text-[11px] font-medium opacity-80">Voti recenti: 🟢 ${cnt.available} · 🟡 ${cnt.limited} · 🔴 ${cnt.closed}${mine ? ` · il tuo voto: ${getStatusConfig(mine.status).shortLabel}` : ''}</div><div class="text-[11px] font-semibold"><i class="fa-regular fa-clock mr-1"></i>${lastInfo}</div></div></div>
-            `;
-            ['available', 'limited', 'closed'].forEach(k => {
-                const el = document.getElementById(`flagCount-${k}`);
-                if (el) el.textContent = cnt[k];
-            });
-
-            const f = st.fuels || {};
-            const avail = [f.benzina && 'Benzina', f.diesel && 'Diesel', f.gpl && 'GPL'].filter(Boolean);
-            document.getElementById('modalFuelPills').innerHTML = (st.status && st.status !== 'unverified')
-                ? (avail.length ? avail.map(n => `<span class="px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">${n}</span>`).join('') : '<span class="text-[11px] text-slate-500">Nessun carburante disponibile.</span>')
-                : '<span class="text-[11px] text-slate-500">Carburanti non ancora verificati.</span>';
-            document.getElementById('modalNoteBox').textContent = st.lastNote ? `"${st.lastNote}"` : 'Nessuna nota presente.';
-            document.getElementById('chkBenzina').checked = st.fuels?.benzina !== false;
-            document.getElementById('chkDiesel').checked = st.fuels?.diesel !== false;
-            document.getElementById('chkGpl').checked = !!st.fuels?.gpl;
-            document.getElementById('selectQueue').value = 'Non indicata';
-            document.getElementById('inputCitizenNote').value = '';
-
-            window.selectFlagChoice(mine ? mine.status : (st.status === 'unverified' ? 'available' : st.status));
-            if (mine) {
-                document.getElementById('chkBenzina').checked = !!mine.fuels?.benzina;
-                document.getElementById('chkDiesel').checked = !!mine.fuels?.diesel;
-                document.getElementById('chkGpl').checked = !!mine.fuels?.gpl;
-                document.getElementById('selectQueue').value = mine.queueLevel || 'Non indicata';
-            }
-            document.getElementById('removeVoteBtn').classList.toggle('hidden', !mine);
-            const submitLabel = document.querySelector('#submitFlagBtn span');
-            if (submitLabel) submitLabel.textContent = mine ? 'Aggiorna il mio voto' : 'Conferma il mio voto';
-            document.getElementById('stationModal').classList.replace('hidden', 'flex');
-        };
-
-
-        window.closeStationModal = function() { document.getElementById('stationModal').classList.replace('flex', 'hidden'); };
-
-        window.selectFlagChoice = function(status) {
-            modalFlagStatusChoice = status;
-            ['available', 'limited', 'closed'].forEach(c => {
-                const btn = document.getElementById(`flagChoice-${c}`);
-                if (!btn) return;
-                btn.className = c === status
-                    ? `flex sm:flex-col items-center justify-center gap-2 p-3 rounded-2xl border-2 transition text-left sm:text-center ${c === 'available' ? 'border-emerald-600 bg-emerald-50 ring-2' : c === 'limited' ? 'border-amber-500 bg-amber-50 ring-2' : 'border-rose-600 bg-rose-50 ring-2'}`
-                    : "flex sm:flex-col items-center justify-center gap-2 p-3 rounded-2xl border-2 border-slate-200 bg-white hover:bg-slate-50 transition text-left opacity-75";
-                btn.setAttribute('aria-pressed', c === status ? 'true' : 'false');
-            });
-            if (status === 'closed') {
-                document.getElementById('chkBenzina').checked = false; document.getElementById('chkDiesel').checked = false; document.getElementById('selectQueue').value = 'Nessuna';
-            } else {
-                if (status === 'available') { document.getElementById('chkBenzina').checked = true; document.getElementById('chkDiesel').checked = true; }
-                if (document.getElementById('selectQueue').value === 'Nessuna') document.getElementById('selectQueue').value = 'Non indicata';
-            }
-        };
-
-
-        // ---- Segnalazioni: una per persona per distributore; ripremere lo stesso stato la rimuove ----
-        function myUid() { return myVoterId; }
-        function myVoteOf(st) { return st && st.votes && myVoterId ? (st.votes[myVoterId] || null) : null; }
-
-        // Regola dei voti:
-        // - vince lo stato con più voti "in corso"; a parità vince il peggiore (Esaurita > Limitata > Aperta),
-        //   quindi con 10 Esaurita e 10 Aperta resta Esaurita e servono 11 Aperta;
-        // - se un voto per uno stato diverso arriva dopo 45 minuti dall'ultimo voto dello stato in vigore,
-        //   il conteggio riparte da quel voto: i voti precedenti restano visibili ma "in ombra" e non pesano.
-        const VOTE_WINDOW_MS = 45 * 60 * 1000;
-        const STATUS_SEVERITY = { closed: 3, limited: 2, available: 1 };
-
-        function winnerOf(list) {
-            const counts = {};
-            list.forEach(v => { counts[v.status] = (counts[v.status] || 0) + 1; });
-            const top = Math.max(...Object.values(counts));
-            const status = Object.keys(counts).filter(k => counts[k] === top)
-                .sort((a, b) => STATUS_SEVERITY[b] - STATUS_SEVERITY[a])[0];
-            return { status, count: top };
-        }
-
-        // ripercorre i voti in ordine di tempo e applica il riavvio del conteggio
-        function splitVotes(votes) {
-            const list = Object.entries(votes).map(([uid, v]) => ({ ...v, uid })).sort((x, y) => x.ts - y.ts);
-            let active = [];
-            const old = [];
-            list.forEach(v => {
-                if (active.length) {
-                    const { status } = winnerOf(active);
-                    const lastOfWinner = Math.max(...active.filter(a => a.status === status).map(a => a.ts));
-                    if (v.status !== status && v.ts - lastOfWinner >= VOTE_WINDOW_MS) {
-                        old.push(...active);
-                        active = [];
-                    }
-                }
-                active.push(v);
-            });
-            return { active, old };
-        }
-
-        // Code: etichette mostrate per i valori salvati. 'Nessuna' (pompa chiusa) e 'Non indicata' non si mostrano.
-        const QUEUE_LABELS = { 'Scorrevole': 'Nessuna coda', 'Moderata': 'Attesa 5-10 min', 'Lunga': 'Coda lunga (+15 min)', 'Presidio TIR / Disagi': 'Presidio TIR / Disagi' };
-        const QUEUE_CHOICES = ['Scorrevole', 'Moderata', 'Lunga'];
-
-        // coda in vigore: l'ultima segnalata davvero tra i voti in corso di pompe aperte o limitate
-        // (un voto rapido "Aperta" senza coda non cancella la coda segnalata poco prima da un altro)
-        function currentQueue(active) {
-            const q = active.filter(v => v.status !== 'closed' && QUEUE_LABELS[v.queueLevel]).sort((x, y) => y.ts - x.ts)[0];
-            return q ? { queueLevel: q.queueLevel, queueTs: q.ts } : { queueLevel: 'Non indicata', queueTs: null };
-        }
-
-        function deriveFromVotes(votes, legacy) {
-            const { active } = splitVotes(votes);
-            if (!active.length) {
-                if (legacy) return { ...legacy };
-                return { status: 'unverified', lastUpdated: null, confirmations: 0, fuels: { benzina: null, diesel: null, gpl: null }, queueLevel: 'Da verificare', lastNote: '', lastReporterId: null };
-            }
-            const { status: winner, count } = winnerOf(active);
-            const latest = active.filter(v => v.status === winner).sort((x, y) => y.ts - x.ts)[0];
-            const queue = winner === 'closed' ? { queueLevel: 'Nessuna', queueTs: null } : currentQueue(active);
-            return { status: winner, lastUpdated: latest.ts, confirmations: count, fuels: latest.fuels, ...queue, lastNote: latest.note, lastReporterId: latest.uid };
-        }
-
-        // ultimo voto arrivato (di qualunque categoria), non lo stato in vigore
-        function lastVoteOf(st) {
-            const votes = st.votes ? Object.values(st.votes) : [];
-            if (votes.length) return votes.reduce((m, v) => (v.ts > m.ts ? v : m));
-            return st.lastUpdated && st.status && st.status !== 'unverified' ? { status: st.status, ts: st.lastUpdated } : null;
-        }
-
-        // lo stato mostrato (filtri, mappa, schede) si ricalcola sempre dai voti, mai dal valore salvato:
-        // così non resta in vigore uno stato calcolato con regole precedenti
-        function normalizeStation(s) {
-            const raw = s.votes && typeof s.votes === 'object' ? s.votes : {};
-            const valid = {};
-            Object.entries(raw).forEach(([uid, v]) => {
-                if (v && ['available', 'limited', 'closed'].includes(v.status) && typeof v.ts === 'number') valid[uid] = v;
-            });
-            if (!Object.keys(valid).length) return s;
-            return { ...s, ...deriveFromVotes(valid, s.legacy || null), votes: valid };
-        }
-
-        // voti per stato (per le segnalazioni vecchie, senza voti, usa il contatore storico)
-        function voteCounts(st) {
-            const c = { available: 0, limited: 0, closed: 0 };
-            const old = { available: 0, limited: 0, closed: 0 };
-            const hasVotes = st.votes && Object.keys(st.votes).length;
-            if (hasVotes) {
-                const { active, old: older } = splitVotes(st.votes);
-                active.forEach(v => { if (v.status in c) c[v.status]++; });
-                older.forEach(v => { if (v.status in old) old[v.status]++; });
-            } else if (st.status in c) c[st.status] = st.confirmations || 0;
-            return { ...c, old };
-        }
-
-
-        function applyVoteToStation(st, uid, vote) {
-            const votes = { ...(st.votes || {}) };
-            let legacy = st.legacy || null;
-            // segnalazioni precedenti al sistema "una per persona": le conserviamo come base
-            if (!st.votes && st.status && st.status !== 'unverified' && st.lastUpdated) {
-                legacy = {
-                    status: st.status, lastUpdated: st.lastUpdated, confirmations: st.confirmations || 1,
-                    fuels: st.fuels || { benzina: null, diesel: null, gpl: null }, queueLevel: st.queueLevel || 'Da verificare',
-                    lastNote: st.lastNote || '', lastReporterId: st.lastReporterId || null
-                };
-            }
-            if (vote) votes[uid] = vote; else delete votes[uid];
-            return { ...st, ...deriveFromVotes(votes, legacy), votes, legacy };
-        }
-
-        // true se il voto è stato salvato (la pagina prende i voti aggiornati dalla risposta);
-        // altrimenti avvisa chi ha votato
-        async function persistVote(stationId, vote) {
-            try {
-                const data = await apiPost('/api/vote', { stationId, vote });
-                const i = stationsData.findIndex(s => s.id === stationId);
-                if (i !== -1 && data.station) { stationsData[i] = stationFromApi(data.station); renderAll(); }
-                return true;
-            } catch (e) {
-                console.error(e);
-                showToast('Voto NON salvato', e.message);
-                return false;
+        // il distributore vero lì vicino (per nome o marchio) è più preciso della via
+        if (!a.gpsPos) {
+            const dd = 0.006, vb = `${pos.lng - dd},${pos.lat + dd},${pos.lng + dd},${pos.lat - dd}`;
+            for (const term of [...new Set([a.name.split(' - ')[0], a.brand === 'Pompa Bianca' ? '' : a.brand].filter(t => t && t.length >= 2))]) {
+                const f = ((await nominatim(`search?format=jsonv2&limit=5&countrycodes=it&bounded=1&viewbox=${vb}&q=${encodeURIComponent(term)}`).catch(() => null)) || []).find(h => h.category === 'amenity' && h.type === 'fuel');
+                if (f) { pos = { lat: Number(f.lat), lng: Number(f.lon) }; break; }
             }
         }
+        const c = findComune(a.comune);
+        if (km(pos, c) > MAX_KM_FROM_COMUNE) { toast(`La posizione trovata non è a ${a.comune}: controlla comune e via.`); return; }
+        const rev = await nominatim(`reverse?format=jsonv2&zoom=16&addressdetails=1&lat=${pos.lat}&lon=${pos.lng}`).catch(() => null);
+        const ad = rev?.address || {};
+        a.zone = (ad.suburb || ad.quarter || ad.neighbourhood || ad.hamlet || a.comune).slice(0, 40);
+        a.pos = pos; a.anchor = pos; a.step = 2; a.dupConfirmed = false;
+        renderAddSheet();
+    } catch (e) {
+        toast('Ricerca non riuscita: riprova tra poco.');
+    } finally { if ($('addNextBtn')) { btn.disabled = !addStep1Ready(); btn.textContent = 'Continua'; } }
+};
 
-        async function castVote(stationId, vote) {
-            const i = stationsData.findIndex(s => s.id === stationId);
-            if (i === -1) return;
-            const uid = myUid();
-            if (!uid) { showToast('Voto NON salvato', 'Il tuo dispositivo non è ancora pronto: ricarica la pagina e riprova.'); return; }
-            const before = stationsData[i];
-            stationsData[i] = applyVoteToStation(before, uid, vote);
-            renderAll();
-            // se il salvataggio fallisce si torna allo stato precedente: niente voti che sembrano
-            // registrati e poi spariscono al ricaricamento
-            pendingVotes++;
-            const ok = await persistVote(stationId, vote).finally(() => { pendingVotes--; });
-            if (!ok) {
-                const j = stationsData.findIndex(s => s.id === stationId);
-                if (j !== -1 && stationsData[j] !== before) { stationsData[j] = before; renderAll(); }
-            }
-        }
+window.addSave = async function () {
+    const a = addState, btn = $('addSaveBtn');
+    btn.disabled = true; btn.textContent = 'Salvataggio…';
+    const v = a.status ? {
+        status: a.status,
+        fuels: a.status === 'closed' ? { benzina: false, diesel: false, gpl: false } : { ...a.fuels },
+        queueLevel: a.status === 'closed' ? 'Nessuna' : 'Non indicata', note: '',
+    } : null;
+    try {
+        const address = `${a.street.name}${a.number ? ' ' + a.number : ''}`.slice(0, 70);
+        const data = await apiPost('/api/stations', { station: { name: a.name, brand: a.brand, address, zone: a.zone || a.comune, comune: a.comune, lat: a.pos.lat, lng: a.pos.lng }, vote: v });
+        const st = fromApi(data.station);
+        stations = [st, ...stations.filter(s => s.id !== st.id)];
+        toast('Grazie! Pompa aggiunta alla mappa.');
+        openStation(st.id);
+    } catch (e) {
+        toast('Non salvata: ' + e.message);
+        btn.disabled = false; btn.textContent = 'Aggiungi alla mappa';
+    }
+};
 
-        window.quickInstantFlag = async function(stationId, newStatus) {
-            const st = stationsData.find(s => s.id === stationId);
-            if (!st) return;
-            const mine = myVoteOf(st);
-            if (mine && mine.status === newStatus) {
-                showToast(st.name, 'Voto tolto.');
-                await castVote(stationId, null);
-                return;
-            }
-            const vote = {
-                status: newStatus, ts: Date.now(),
-                fuels: newStatus === 'closed' ? { benzina: false, diesel: false, gpl: false } : { benzina: true, diesel: true, gpl: st.fuels?.gpl || false },
-                queueLevel: newStatus === 'closed' ? 'Nessuna' : ((bannerQueue && bannerQueue.id === stationId) ? bannerQueue.q : 'Non indicata'),
-                note: newStatus === 'available' ? 'Aperta.' : newStatus === 'limited' ? 'Limitata.' : 'Chiusa.'
-            };
-            showToast(st.name, mine ? 'Voto cambiato.' : 'Voto registrato.');
-            await castVote(stationId, vote);
-        };
+// ---------- notizie ----------
+async function loadNews() {
+    try {
+        const data = await (await fetch('/api/press-news')).json();
+        const items = (data.items || []).slice(0, 6);
+        $('newsCount').textContent = items.length ? `(${items.length})` : '';
+        $('newsList').innerHTML = items.length ? items.map(it => `<li><a href="${/^https?:\/\//.test(it.link) ? esc(it.link) : '#'}" target="_blank" rel="noopener" class="font-semibold hover:underline">${esc(it.title)}</a><div class="text-[12px] text-slate-500">${esc(it.source)}${it.publishedAt ? ' · ' + ago(it.publishedAt) : ''}</div></li>`).join('') : '<li class="text-slate-500">Nessuna notizia recente.</li>';
+    } catch (e) { $('newsCount').textContent = ''; }
+}
 
-        // scheda piccola: segnalare la coda. Se hai già votato la pompa aperta o limitata, il voto si aggiorna
-        // subito; altrimenti la coda vale per il voto che dai dopo.
-        window.setBannerQueue = async function(stationId, q) {
-            const st = stationsData.find(s => s.id === stationId);
-            if (!st) return;
-            bannerQueue = { id: stationId, q };
-            const mine = myVoteOf(st);
-            if (mine && mine.status !== 'closed') {
-                if (mine.queueLevel === q) return;
-                showToast(st.name, `Coda segnalata: ${QUEUE_LABELS[q]}.`);
-                await castVote(stationId, { ...mine, queueLevel: q, ts: Date.now() });
-            } else {
-                updateMapQuickBanner();
-                showToast(QUEUE_LABELS[q], 'Ora tocca Aperta o Limitata per votare con questa coda.');
-            }
-        };
+// ---------- comuni della provincia (public/comuni.json, lo stesso elenco usato dal server) ----------
+let COMUNI = [];
+const comuneKey = (t) => (t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[’`]/g, "'").replace(/\s+/g, ' ').trim();
+const findComune = (name) => COMUNI.find(c => comuneKey(c.nome) === comuneKey(name));
+async function loadComuni() { try { COMUNI = await (await fetch('/comuni.json')).json(); } catch (e) { console.warn('Elenco comuni non disponibile', e); } }
 
-        window.removeMyVote = async function(stationId) {
-            const st = stationsData.find(s => s.id === stationId);
-            if (!st || !myVoteOf(st)) return;
-            window.closeStationModal();
-            showToast(st.name, 'Voto tolto.');
-            await castVote(stationId, null);
-        };
-
-        window.submitStationFlag = async function() {
-            if (!modalStationId) return;
-            const id = modalStationId;
-            const vote = {
-                status: modalFlagStatusChoice, ts: Date.now(),
-                fuels: { benzina: document.getElementById('chkBenzina').checked, diesel: document.getElementById('chkDiesel').checked, gpl: document.getElementById('chkGpl').checked },
-                queueLevel: document.getElementById('selectQueue').value,
-                note: document.getElementById('inputCitizenNote').value.trim() || 'Aggiornata.'
-            };
-            window.closeStationModal();
-            showToast('Voto registrato', 'Grazie! Puoi cambiarlo o toglierlo quando vuoi.');
-            await castVote(id, vote);
-        };
-
-        window.openAddStationModal = () => document.getElementById('addStationModal').classList.replace('hidden', 'flex');
-        window.closeAddStationModal = () => document.getElementById('addStationModal').classList.replace('flex', 'hidden');
-
-        // "Altro quartiere…" / "Altro Comune…": compare il campo libero, obbligatorio solo in quei casi
-        window.toggleOtherZone = function() {
-            const other = document.getElementById('newStationZoneOther');
-            const choice = document.getElementById('newStationZone').value;
-            const isOther = choice === '__altro__' || choice === '__comune__';
-            other.placeholder = choice === '__comune__' ? 'Scrivi il comune' : 'Scrivi il quartiere';
-            other.classList.toggle('hidden', !isOther);
-            other.required = isOther;
-            if (isOther) other.focus();
-        };
-
-        const BENEVENTO_CENTER = { lat: 41.1300, lng: 14.7820 };
-        function distanceKm(a, b) {
-            const dLat = (a.lat - b.lat) * 111, dLng = (a.lng - b.lng) * 111 * Math.cos(a.lat * Math.PI / 180);
-            return Math.hypot(dLat, dLng);
-        }
-
-        // posizione esatta di un indirizzo dal servizio di ricerca di OpenStreetMap (Nominatim); null se non trovato
-        // si accetta solo un risultato nel comune giusto: "Via Aldo Moro, Benevento BN" altrimenti portava alla
-        // Via Aldo Moro di Sant'Angelo a Cupolo ("Benevento" vale anche come provincia)
-        const placeKey = (t) => (t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[’`]/g, "'").trim();
-        async function geocodeAddress(address, place) {
-            const inPlace = (h) => { const a = h.address || {}; return placeKey(a.city || a.town || a.village || a.municipality) === placeKey(place); };
-            const search = async (params) => {
-                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&addressdetails=1&countrycodes=it&accept-language=it&${params}`, { signal: AbortSignal.timeout(8000) });
-                return res.ok ? (await res.json()).find(inPlace) : null;
-            };
-            try {
-                const q = address.toLowerCase().includes(place.toLowerCase()) ? address : `${address}, ${place}`;
-                let hit = await search(`q=${encodeURIComponent(q)}`);
-                // secondo tentativo: solo il nome della via (senza "Via", "Viale"… e numero) nel comune scelto,
-                // così "Via Aldo Moro" trova il Viale Aldo Moro di Benevento
-                if (!hit) {
-                    const street = address.split(',')[0].replace(/\d+\w?/g, '').replace(/^\s*(via|viale|v\.le|piazza|p\.zza|corso|c\.so|contrada|c\.da|largo|vico|vicolo|strada)\s+/i, '').trim();
-                    if (street.length >= 3) hit = await search(`street=${encodeURIComponent(street)}&city=${encodeURIComponent(place)}`);
-                }
-                if (!hit) return null;
-                const pos = { lat: Number(hit.lat), lng: Number(hit.lon) };
-                return Number.isFinite(pos.lat) && Number.isFinite(pos.lng) ? pos : null;
-            } catch (err) {
-                console.warn('Ricerca indirizzo non riuscita', err);
-                return null;
-            }
-        }
-
-        // Cerca su OpenStreetMap il distributore vero vicino all'indirizzo, per nome (es. "Oroil") o marchio
-        // (es. "IP"): un indirizzo senza numero civico porta solo a metà via, spesso sul distributore accanto.
-        // Restituisce la posizione del distributore trovato, oppure null.
-        async function findFuelStation(name, brand, near) {
-            const d = 0.006; // circa 600 m attorno all'indirizzo
-            const viewbox = `${near.lng - d},${near.lat + d},${near.lng + d},${near.lat - d}`;
-            const terms = [...new Set([name.split(' - ')[0].trim(), brand === 'Pompa Bianca' ? '' : brand].filter(t => t && t.length >= 2))];
-            for (const term of terms) {
-                try {
-                    const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&countrycodes=it&accept-language=it&bounded=1&viewbox=${viewbox}&q=${encodeURIComponent(term)}`;
-                    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
-                    if (!res.ok) continue;
-                    const fuel = (await res.json()).filter(h => h.category === 'amenity' && h.type === 'fuel')
-                        .map(h => ({ lat: Number(h.lat), lng: Number(h.lon), name: (h.name || '').toLowerCase() }))
-                        .filter(h => Number.isFinite(h.lat) && Number.isFinite(h.lng));
-                    if (!fuel.length) continue;
-                    // a parità, il più vicino all'indirizzo scritto
-                    fuel.sort((a, b) => distanceKm(a, near) - distanceKm(b, near));
-                    return { lat: fuel[0].lat, lng: fuel[0].lng };
-                } catch (err) {
-                    console.warn('Ricerca distributore non riuscita', err);
-                }
-            }
-            return null;
-        }
-
-        window.handleAddStationSubmit = async function(e) {
-            e.preventDefault();
-            const brand = document.getElementById('newStationBrand').value;
-            const zoneChoice = document.getElementById('newStationZone').value;
-            const isOtherComune = zoneChoice === '__comune__';
-            const isFreeText = zoneChoice === '__altro__' || isOtherComune;
-            const zone = isFreeText ? document.getElementById('newStationZoneOther').value.trim() : zoneChoice;
-            const name = document.getElementById('newStationName').value.trim();
-            const address = document.getElementById('newStationAddress').value.trim();
-            const status = document.getElementById('newStationStatus').value;
-            if (!name || !address || !zone) return;
-
-            // la pompa va nel punto esatto dell'indirizzo; a Benevento, se la ricerca fallisce o finisce
-            // lontano dalla città, si usa la zona scelta (o il centro per un quartiere scritto a mano)
-            const submitBtn = document.getElementById('addStationSubmit');
-            const submitLabel = submitBtn.textContent;
-            submitBtn.disabled = true; submitBtn.textContent = "Cerco l'indirizzo…";
-            let pos = await geocodeAddress(address, isOtherComune ? zone : 'Benevento');
-            if (pos) pos = (await findFuelStation(name, brand, pos)) || pos;
-            submitBtn.disabled = false; submitBtn.textContent = submitLabel;
-            if (isOtherComune && !pos) {
-                showToast('Indirizzo non trovato', `Controlla via e comune (${zone}) e riprova.`);
-                return;
-            }
-            if (!isOtherComune && pos && distanceKm(pos, BENEVENTO_CENTER) > 15) pos = null;
-            if (!pos) {
-                const base = ZONE_COORDINATES_MAP[zone] || ZONE_COORDINATES_MAP["Centro / Mellusi"];
-                pos = { lat: base.lat + (Math.random() - 0.5) * 0.004, lng: base.lng + (Math.random() - 0.5) * 0.004 };
-            }
-            const note = document.getElementById('newStationNote').value.trim();
-            // lo stato scelto da chi aggiunge il distributore è il suo primo voto, così segue la stessa regola degli altri
-            const vote = status === 'unverified' ? null : {
-                status,
-                fuels: { benzina: status !== 'closed', diesel: status !== 'closed', gpl: false },
-                queueLevel: status === 'closed' ? 'Nessuna' : 'Non indicata',
-                note: note || (status === 'available' ? 'Aperta.' : status === 'limited' ? 'Limitata.' : 'Chiusa.')
-            };
-            const station = { name, brand, address, zone, comune: isOtherComune ? zone : '', lat: Number(pos.lat.toFixed(5)), lng: Number(pos.lng.toFixed(5)) };
-
-            submitBtn.disabled = true; submitBtn.textContent = 'Salvataggio…';
-            let data;
-            try {
-                data = await apiPost('/api/stations', { station, vote });
-            } catch (err) {
-                console.error(err);
-                showToast('Distributore NON salvato', err.message);
-                return;
-            } finally {
-                submitBtn.disabled = false; submitBtn.textContent = submitLabel;
-            }
-            const newStation = stationFromApi(data.station);
-            stationsData = [newStation, ...stationsData.filter(st => st.id !== newStation.id)];
-            selectedStationId = newStation.id;
-            window.closeAddStationModal(); e.target.reset(); window.toggleOtherZone(); renderAll();
-            if (leafletMap) leafletMap.setView([newStation.lat, newStation.lng], 15);
-            showToast("Nuovo distributore aggiunto!", `${name} è ora visibile.`);
-        };
-
-        let toastTimeout = null;
-        function showToast(title, message) {
-            const toast = document.getElementById('toastNotification');
-            document.getElementById('toastTitle').textContent = title;
-            document.getElementById('toastMessage').textContent = message;
-            toast.classList.replace('hidden', 'flex');
-            if (toastTimeout) clearTimeout(toastTimeout);
-            toastTimeout = setTimeout(() => toast.classList.replace('flex', 'hidden'), 4000);
-        }
-
-        setInterval(() => { renderStationsList(); updateMapQuickBanner(); }, 30000);
-
-        // Notizie dalla stampa locale (/api/press-news)
-        (function() {
-            const timeAgo = (ts) => {
-                if (!ts) return '';
-                const min = Math.round((Date.now() - ts) / 60000);
-                if (min < 1) return 'adesso';
-                if (min < 60) return `${min} min fa`;
-                const h = Math.round(min / 60);
-                if (h < 24) return `${h} h fa`;
-                return `${Math.round(h / 24)} g fa`;
-            };
-
-            async function loadPressNews() {
-                try {
-                    const res = await fetch('/api/press-news');
-                    if (!res.ok) return;
-                    const data = await res.json();
-                    if (!data.items || data.items.length === 0) {
-                        document.getElementById('pressNewsList').innerHTML = '<li class="text-slate-500 italic">Nessuna notizia recente dalla stampa locale.</li>';
-                        return;
-                    }
-                    document.getElementById('pressNewsList').innerHTML = data.items.slice(0, 5).map(it => {
-                        const href = /^https?:\/\//.test(it.link) ? it.link : '#';
-                        return `<li class="flex gap-1.5"><span class="shrink-0 px-1.5 rounded bg-slate-900 text-amber-400 text-[10px] font-extrabold uppercase leading-5">${esc(it.source)}</span><a href="${esc(href)}" target="_blank" rel="noopener noreferrer" class="hover:text-red-600 hover:underline font-semibold">${esc(it.title)}</a><span class="shrink-0 text-[10px] text-slate-500 leading-5">${timeAgo(it.publishedAt)}</span></li>`;
-                    }).join('');
-                    document.getElementById('pressNewsUpdated').textContent = `• aggiornato ${timeAgo(data.updatedAt)}`;
-                } catch (e) {
-                    console.warn('Notizie stampa non disponibili', e);
-                }
-            }
-
-            loadPressNews();
-            setInterval(loadPressNews, 5 * 60 * 1000);
-        })();
-
-        // ---- Usabilità: tastiera e focus delle schede ----
-        (function() {
-            const MODALS = ['stationModal', 'addStationModal'];
-            let lastFocus = null;
-            const isOpen = (id) => document.getElementById(id).classList.contains('flex');
-            const lock = () => { document.body.style.overflow = MODALS.some(isOpen) ? 'hidden' : ''; };
-
-            const wrapOpen = (name, focusSel, overlayId) => {
-                const orig = window[name];
-                window[name] = function(...args) {
-                    lastFocus = document.activeElement;
-                    orig.apply(this, args);
-                    lock();
-                    const el = document.querySelector(`#${overlayId} ${focusSel}`);
-                    if (el) setTimeout(() => el.focus({ preventScroll: true }), 30);
-                };
-            };
-            const wrapClose = (name) => {
-                const orig = window[name];
-                window[name] = function(...args) {
-                    orig.apply(this, args);
-                    lock();
-                    if (lastFocus && document.body.contains(lastFocus)) lastFocus.focus({ preventScroll: true });
-                };
-            };
-            wrapOpen('openStationModal', '[aria-pressed="true"]', 'stationModal');
-            wrapOpen('openAddStationModal', '#newStationName', 'addStationModal');
-            wrapClose('closeStationModal');
-            wrapClose('closeAddStationModal');
-
-            document.addEventListener('keydown', (e) => {
-                if (e.key !== 'Escape') return;
-                if (isOpen('stationModal')) window.closeStationModal();
-                else if (isOpen('addStationModal')) window.closeAddStationModal();
-                else window.clearMapSelection();
-            });
-            MODALS.forEach(id => document.getElementById(id).addEventListener('mousedown', (e) => {
-                if (e.target.id !== id) return;
-                if (id === 'stationModal') window.closeStationModal(); else window.closeAddStationModal();
-            }));
-        })();
-
-        // ---- Mobile: vista Mappa / Elenco ----
-        (function() {
-            const on = 'px-3 py-2.5 rounded-lg text-sm font-extrabold transition bg-white text-slate-900 shadow-sm flex items-center justify-center gap-2';
-            const off = 'px-3 py-2.5 rounded-lg text-sm font-bold transition text-slate-500 flex items-center justify-center gap-2';
-            window.setView = function(view) {
-                document.body.dataset.view = view;
-                const m = document.getElementById('tabViewMap'), l = document.getElementById('tabViewList');
-                m.className = view === 'map' ? on : off; l.className = view === 'list' ? on : off;
-                m.setAttribute('aria-selected', view === 'map'); l.setAttribute('aria-selected', view === 'list');
-                if (view === 'map' && leafletMap) setTimeout(() => leafletMap.invalidateSize(), 50);
-                // riporta l'inizio della vista sotto la barra
-                const bar = document.getElementById('tabViewMap').closest('nav');
-                const filters = document.getElementById('searchInput').closest('div.rounded-2xl');
-                if (window.innerWidth < 1024 && window.scrollY > filters.offsetTop) window.scrollTo({ top: filters.offsetTop - bar.offsetHeight, behavior: 'auto' });
-            };
-            document.body.dataset.view = 'map';
-        })();
-
-        // Avvio: subito (lo script è in fondo alla pagina), senza aspettare font e icone;
-        // un errore della mappa non deve bloccare elenco e voti
-        try { initLeafletMapIfNeeded(); } catch (err) { console.error('Mappa non avviata', err); }
-        renderAll();
-        initDataSync();
+// ---------- avvio ----------
+(async function start() {
+    try { initMap(); } catch (e) { console.error('Mappa non avviata', e); }
+    render();
+    try { myVoterId = await computeVoterId(); } catch (e) { console.warn(e); }
+    await load();
+    let timer = setInterval(load, POLL_MS);
+    document.addEventListener('visibilitychange', () => { clearInterval(timer); if (!document.hidden) { load(); timer = setInterval(load, POLL_MS); } });
+    loadNews();
+    loadComuni();
+})();

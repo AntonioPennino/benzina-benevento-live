@@ -1,5 +1,6 @@
 // Codice comune alle API dei distributori e dei voti (functions/api/*). I controlli qui sotto
 // sostituiscono le regole di sicurezza di Firebase: il database è raggiungibile solo da queste API.
+import COMUNI from '../public/comuni.json'
 
 export interface Env {
   DB: D1Database
@@ -99,19 +100,35 @@ export function parseVote(v: any): Omit<Vote, 'ts'> {
   }
 }
 
+// confronto dei nomi dei comuni senza maiuscole, accenti e apostrofi diversi
+const comuneKey = (t: string) => t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[’`]/g, "'").replace(/\s+/g, ' ').trim()
+// distanza massima dal centro del comune scelto: oltre, la posizione non è credibile
+const MAX_KM_FROM_COMUNE = 12
+
+function kmBetween(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
+  return Math.hypot((a.lat - b.lat) * 111, (a.lng - b.lng) * 111 * Math.cos(a.lat * Math.PI / 180))
+}
+
+// Nuovo distributore: solo nei 78 comuni della provincia di Benevento, con nome e via sensati e una
+// posizione vicina al comune scelto (contro le voci inventate)
 export function parseNewStation(s: any) {
   if (!s || typeof s !== 'object') throw new ApiError(400, 'Distributore non valido.')
   if (!BRANDS.includes(s.brand)) throw new ApiError(400, 'Marchio non valido.')
   const lat = Number(s.lat), lng = Number(s.lng)
-  // area larga attorno a Benevento (anche gli altri comuni della provincia)
-  if (!(lat > 40.0 && lat < 42.0 && lng > 13.5 && lng < 16.0)) throw new ApiError(400, 'Posizione fuori zona.')
-  const comune = text(s.comune, 40, 'il comune', false)
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) throw new ApiError(400, 'Posizione non valida.')
+  const comuneText = text(s.comune, 40, 'il comune', false) || 'Benevento'
+  const comune = (COMUNI as { nome: string; lat: number; lng: number }[]).find((c) => comuneKey(c.nome) === comuneKey(comuneText))
+  if (!comune) throw new ApiError(400, 'Comune non valido: scegli un comune della provincia di Benevento.')
+  if (kmBetween({ lat, lng }, comune) > MAX_KM_FROM_COMUNE) throw new ApiError(400, `La posizione non corrisponde al comune di ${comune.nome}.`)
+  const name = text(s.name, 50, 'il nome'), address = text(s.address, 70, "l'indirizzo")
+  if (name.length < 3 || !/\p{L}/u.test(name)) throw new ApiError(400, 'Scrivi il nome del distributore.')
+  if (address.length < 3 || !/\p{L}{2}/u.test(address)) throw new ApiError(400, 'Scrivi la via del distributore.')
   return {
-    name: text(s.name, 50, 'il nome'),
+    name,
     brand: s.brand as string,
-    address: text(s.address, 70, "l'indirizzo"),
+    address,
     zone: text(s.zone, 40, 'il quartiere'),
-    comune: comune || null,
+    comune: comune.nome === 'Benevento' ? null : comune.nome,
     lat: Math.round(lat * 1e5) / 1e5,
     lng: Math.round(lng * 1e5) / 1e5,
   }

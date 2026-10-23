@@ -2,7 +2,7 @@
 // (npm run build:css). Prima si usava cdn.tailwindcss.com, che costruiva lo stile nel browser a ogni visita.
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: ['./public/index.html', './public/app.js'],
+  content: ['./public/index.html', './public/*.js'],
   theme: {
     extend: {
       fontFamily: {
