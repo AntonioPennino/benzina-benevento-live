@@ -167,6 +167,7 @@ function renderList() {
             <span class="text-right shrink-0 max-w-[38%]">
                 <span class="block text-[14px] font-bold ${stale ? 'text-slate-500' : s.text}">${s.short}</span>
                 <span class="block text-[12px] ${stale ? 'text-amber-700 font-semibold' : 'text-slate-500'}">${st.lastUpdated ? (stale ? 'da confermare · ' : '') + ago(st.lastUpdated) : 'sei lì? segnala'}</span>
+                ${Object.keys(st.votes || {}).length ? `<span class="block text-[11px] text-slate-400">${Object.keys(st.votes).length} ${Object.keys(st.votes).length === 1 ? 'segnalazione' : 'segnalazioni'}</span>` : ''}
                 ${mine ? '<span class="block text-[11px] text-blue-700 font-semibold">hai votato</span>' : ''}
             </span>
         </button>`;
@@ -283,7 +284,9 @@ function renderStationSheet() {
     const s = STATUS[st.status], stale = isStale(st), mine = myVote(st), counts = voteCounts(st);
     const total = counts.available + counts.limited + counts.closed;
     const oldTotal = counts.old.available + counts.old.limited + counts.old.closed;
-    const oldText = [['available', 'aperta'], ['limited', 'code'], ['closed', 'esaurita']].filter(([k]) => counts.old[k]).map(([k, l]) => `${counts.old[k]} ${l}`).join(', ');
+    // storia delle segnalazioni (una per persona, la più recente): le vecchie restano visibili, in grigio
+    const activeTs = new Set(splitVotes(st.votes || {}).active.map(v => v.uid + ':' + v.ts));
+    const history = Object.entries(st.votes || {}).map(([uid, v]) => ({ ...v, counts: activeTs.has(uid + ':' + v.ts), mine: uid === myVoterId })).sort((a, b) => b.ts - a.ts);
     const q = queueText(st);
     const fuels = st.status !== 'unverified' && st.status !== 'closed' ? [['benzina', 'Benzina'], ['diesel', 'Diesel'], ['gpl', 'GPL']].filter(([k]) => typeof st.fuels?.[k] === 'boolean') : [];
     const note = st.lastNote && !DEFAULT_NOTES.includes(st.lastNote) ? st.lastNote : '';
@@ -317,8 +320,13 @@ function renderStationSheet() {
                 ${q ? `<p class="mt-3 text-[14px] font-semibold ${st.queueLevel === 'Scorrevole' ? 'text-emerald-800' : 'text-amber-800'}"><i class="fa-solid fa-car-side mr-1.5"></i>${esc(q)}${st.queueTs ? ` <span class="font-normal text-slate-500">· ${ago(st.queueTs)}</span>` : ''}</p>` : ''}
                 ${fuels.length ? `<p class="mt-2 flex flex-wrap gap-1.5">${fuels.map(([k, l]) => `<span class="px-2 py-0.5 rounded-lg text-[13px] font-semibold ${st.fuels[k] ? 'bg-white text-emerald-800' : 'bg-white/60 text-slate-400 line-through'}">${l}</span>`).join('')}</p>` : ''}
                 ${note ? `<p class="mt-2 text-[14px] text-slate-700 italic">"${esc(note)}"</p>` : ''}
-                ${total ? `<p class="mt-3 text-[12px] text-slate-500">Voti che contano: ${counts.available} aperta · ${counts.limited} code · ${counts.closed} esaurita <button onclick="openHowItWorks()" class="underline">come si decide</button></p>` : ''}
-                ${oldTotal ? `<p class="mt-1.5 text-[12px] text-slate-500"><i class="fa-solid fa-clock-rotate-left mr-1"></i>${oldTotal} ${oldTotal === 1 ? 'voto precedente' : 'voti precedenti'} (${oldText}) non ${oldTotal === 1 ? 'conta' : 'contano'} più: nessuno aveva confermato lo stato per 45 minuti, e il voto arrivato dopo ha fatto ripartire il conteggio.</p>` : ''}
+                ${history.length ? `
+                <div class="mt-3 pt-3 border-t border-black/5">
+                    <p class="text-[12px] text-slate-500">Segnalazioni totali: <strong>${history.length}</strong>${oldTotal ? ` · ne ${total === 1 ? 'conta' : 'contano'} ${total}` : ''} <button onclick="openHowItWorks()" class="underline">come si decide</button></p>
+                    <ul class="mt-1.5 space-y-1">${history.slice(0, 6).map(v => `<li class="flex items-center gap-2 text-[13px] ${v.counts ? 'text-slate-700' : 'text-slate-400'}"><span class="font-mono text-[12px] w-11 shrink-0">${clock(v.ts)}</span><i class="fa-solid ${STATUS[v.status].icon} w-4 text-center ${v.counts ? STATUS[v.status].text : ''}"></i><span>${STATUS[v.status].short}${v.mine ? ' · tu' : ''}</span>${v.counts ? '' : '<span class="text-[11px]">· non conta più</span>'}<span class="ml-auto text-[11px] text-slate-400">${ago(v.ts)}</span></li>`).join('')}</ul>
+                    ${history.length > 6 ? `<p class="text-[12px] text-slate-400 mt-1">e altre ${history.length - 6} prima</p>` : ''}
+                    ${oldTotal ? '<p class="text-[12px] text-slate-400 mt-1.5">Quelle in grigio non contano più: per 45 minuti nessuno aveva confermato lo stato e la segnalazione arrivata dopo ha fatto ripartire il conteggio.</p>' : ''}
+                </div>` : ''}
             </div>
 
             <div class="mt-5">
@@ -436,7 +444,7 @@ window.openHowItWorks = function () {
                 <p><strong>Lo stato lo segnalano i cittadini.</strong> Chi passa davanti a una pompa la vota: Aperta, Code o Esaurita. Non serve registrarsi.</p>
                 <p><strong>Un voto a persona per pompa.</strong> Puoi cambiarlo o toglierlo quando vuoi.</p>
                 <p><strong>Vince lo stato con più voti.</strong> A parità vince il più prudente (Esaurita, poi Code, poi Aperta): meglio non mandare nessuno a vuoto.</p>
-                <p><strong>Le notizie invecchiano.</strong> Se per 45 minuti nessuno conferma lo stato, il primo voto diverso lo cambia subito. Dopo 3 ore senza conferme la pompa appare tratteggiata: la notizia potrebbe non valere più.</p>
+                <p><strong>Le notizie invecchiano.</strong> Se per 45 minuti nessuno conferma lo stato, il primo voto diverso lo cambia subito (per esempio una pompa che riapre). Le segnalazioni precedenti restano visibili nella scheda, in grigio, con il totale. Dopo 3 ore senza conferme la pompa appare tratteggiata: la notizia potrebbe non valere più.</p>
                 <p><strong>Code e carburanti</strong> sono quelli indicati nell’ultima segnalazione.</p>
                 <p class="text-[13px] text-slate-500">Il sito non chiede nomi né account. Per riconoscere il tuo voto usa un codice casuale salvato solo sul tuo telefono.</p>
             </div>
