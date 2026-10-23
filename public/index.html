@@ -11,38 +11,20 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
     <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <!-- I distributori si chiedono subito, mentre il resto della pagina si carica (li usa app.js) -->
+    <script>window.__stationsRequest = fetch('/api/stations', { cache: 'no-store' }).catch(function () { return null; });</script>
+    <!-- Stile generato con Tailwind (npm run build:css) -->
+    <link rel="stylesheet" href="/styles.css?v=dev">
+    <!-- Font e icone non bloccano la prima schermata: arrivano appena pronti -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-    <!-- Font Awesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <!-- Leaflet CSS & JS for Interactive Road Map -->
+    <link rel="preconnect" href="https://tile.openstreetmap.org" crossorigin>
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"></noscript>
+    <!-- Mappa stradale (Leaflet) -->
     <link rel="stylesheet" href="/vendor/leaflet/leaflet.css" />
-    <script src="/vendor/leaflet/leaflet.js"></script>
-
-
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                        mono: ['JetBrains Mono', 'monospace'],
-                    },
-                    colors: {
-                        bn: {
-                            yellow: '#FACC15',
-                            red: '#DC2626',
-                            dark: '#0F172A'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+    <script src="/vendor/leaflet/leaflet.js" defer></script>
 
     <style>
         body {
@@ -367,6 +349,7 @@
                         <label for="sortSelect" class="text-[11px] font-semibold text-slate-500">Ordina:</label>
                         <select id="sortSelect" onchange="handleSortChange(this.value)" class="text-xs font-semibold bg-slate-100 border border-slate-300 rounded-lg px-2 py-1.5 text-slate-800 focus:outline-none">
                             <option value="recent">Aggiornati di recente</option>
+                            <option value="near">Più vicini a me 📍</option>
                             <option value="status">Prima Aperti 🟢</option>
                             <option value="unverified">Prima Da Verificare ⚪</option>
                             <option value="name">Nome (A-Z)</option>
@@ -599,6 +582,6 @@
         </div>
     </footer>
 
-    <script src="/app.js?v=dev"></script>
+    <script src="/app.js?v=dev" defer></script>
 </body>
 </html>

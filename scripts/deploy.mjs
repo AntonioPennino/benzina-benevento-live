@@ -3,6 +3,7 @@
 import { execSync } from 'node:child_process'
 
 const run = (cmd) => execSync(cmd, { stdio: 'inherit' })
+run('npm run build:css')
 run('node scripts/stamp-version.mjs')
 try {
   run('npx wrangler pages deploy --branch main --commit-dirty=true')
