@@ -92,6 +92,11 @@
             font-weight: 700;
             transition: transform 0.2s ease;
         }
+        /* stato non confermato da più di 3 ore (STALE_MS in app.js) */
+        .custom-leaflet-pin.pin-stale {
+            opacity: 0.5;
+            filter: saturate(0.5);
+        }
         .custom-leaflet-pin:hover {
             transform: scale(1.15);
             z-index: 1000 !important;
@@ -288,6 +293,10 @@
                         <span class="w-3 h-3 rounded-full bg-slate-500 inline-block ring-2 ring-slate-200"></span>
                         ⚪ In attesa di verifica
                     </span>
+                    <span class="inline-flex items-center gap-1.5 font-semibold text-slate-500">
+                        <span class="w-3 h-3 rounded-full bg-rose-600 inline-block opacity-50"></span>
+                        Sbiadita: nessuna conferma da oltre 3 ore
+                    </span>
                 </div>
                 <span class="text-[11px] text-slate-400 font-medium">
                     <i class="fa-solid fa-hand-pointer mr-1"></i>Tocca una pompa per votarla · zoom con pizzico o rotella
@@ -392,9 +401,14 @@
                 <div class="bg-slate-50 rounded-2xl p-3.5 border border-slate-200 space-y-2.5">
                     <div class="flex items-center justify-between text-xs">
                         <span class="font-bold text-slate-600 uppercase tracking-wider">Dettagli Ultima Segnalazione</span>
-                        <a id="modalGoogleMapsLink" href="#" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 font-bold text-blue-600 hover:text-blue-800">
-                            <i class="fa-solid fa-diamond-turn-right"></i> Apri in Google Maps
-                        </a>
+                        <span class="inline-flex items-center gap-3">
+                            <button type="button" onclick="shareStation()" class="inline-flex items-center gap-1 font-bold text-emerald-700 hover:text-emerald-900">
+                                <i class="fa-solid fa-share-nodes"></i> Condividi
+                            </button>
+                            <a id="modalGoogleMapsLink" href="#" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 font-bold text-blue-600 hover:text-blue-800">
+                                <i class="fa-solid fa-diamond-turn-right"></i> Google Maps
+                            </a>
+                        </span>
                     </div>
                     <div id="modalFuelPills" class="flex flex-wrap gap-1.5"></div>
                     <div id="modalNoteBox" class="text-xs text-slate-700 bg-white px-3 py-2 rounded-xl border border-slate-200 italic"></div>
