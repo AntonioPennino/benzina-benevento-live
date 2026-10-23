@@ -6,7 +6,7 @@ const STALE_MS = 3 * 60 * 60 * 1000;
 const BENEVENTO = { lat: 41.1300, lng: 14.7820 };
 const STATUS = {
     available:  { label: 'Aperta',          short: 'Aperta',   icon: 'fa-check',          text: 'text-emerald-700', bg: 'bg-emerald-50',  ring: 'border-emerald-200', solid: 'bg-emerald-600' },
-    limited:    { label: 'Code o limitata', short: 'Code',     icon: 'fa-hourglass-half', text: 'text-amber-700',   bg: 'bg-amber-50',    ring: 'border-amber-200',   solid: 'bg-amber-500' },
+    limited:    { label: 'Limitata', short: 'Limitata', icon: 'fa-exclamation', text: 'text-amber-700',   bg: 'bg-amber-50',    ring: 'border-amber-200',   solid: 'bg-amber-500' },
     closed:     { label: 'Esaurita',        short: 'Esaurita', icon: 'fa-xmark',          text: 'text-red-700',     bg: 'bg-red-50',      ring: 'border-red-200',     solid: 'bg-red-600' },
     unverified: { label: 'Nessuna notizia', short: 'Nessuna notizia', icon: 'fa-question', text: 'text-slate-600',  bg: 'bg-slate-50',    ring: 'border-slate-200',   solid: 'bg-slate-500' },
 };
@@ -37,6 +37,10 @@ function ago(ts) {
     return `${d} ${d === 1 ? 'giorno' : 'giorni'} fa`;
 }
 const clock = (ts) => { const d = new Date(ts); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+// aperta ma con coda segnalata: segnaposto verde con la clessidra (la coda si vota a parte)
+const BUSY_QUEUES = ['Moderata', 'Lunga', 'Presidio TIR / Disagi'];
+const hasQueue = (st) => st.status === 'available' && BUSY_QUEUES.includes(st.queueLevel);
+const iconOf = (st) => hasQueue(st) ? 'fa-hourglass-half' : STATUS[st.status].icon;
 const isStale = (st) => st.status !== 'unverified' && st.lastUpdated && Date.now() - st.lastUpdated > STALE_MS;
 const myVote = (st) => (myVoterId && st.votes && st.votes[myVoterId]) || null;
 
@@ -133,7 +137,7 @@ function renderSummary() {
         </button>`;
     $('summary').innerHTML = `
         <div class="grid grid-cols-2 gap-2">${[['all', 'Tutte', 'fa-gas-pump', 'text-slate-700'], ['unverified', 'Senza notizie', 'fa-question', 'text-slate-500']].map(chip).join('')}</div>
-        <div class="grid grid-cols-3 gap-2 mt-2">${[['available', 'Aperte', 'fa-check', 'text-emerald-600'], ['limited', 'Code', 'fa-hourglass-half', 'text-amber-600'], ['closed', 'Esaurite', 'fa-xmark', 'text-red-600']].map(chip).join('')}</div>`;
+        <div class="grid grid-cols-3 gap-2 mt-2">${[['available', 'Aperte', 'fa-check', 'text-emerald-600'], ['limited', 'Limitate', 'fa-exclamation', 'text-amber-600'], ['closed', 'Esaurite', 'fa-xmark', 'text-red-600']].map(chip).join('')}</div>`;
 }
 
 function queueText(st) { return st.status !== 'closed' && QUEUE_LABELS[st.queueLevel] ? QUEUE_LABELS[st.queueLevel] : ''; }
@@ -158,7 +162,7 @@ function renderList() {
         const where = [st.address, me ? fmtKm(km(me, st)) : st.zone].filter(Boolean).join(' · ');
         return `
         <button role="listitem" onclick="openStation('${esc(st.id)}')" class="w-full text-left flex items-center gap-3 px-4 py-3 border-b border-slate-100 hover:bg-slate-50 focus:bg-amber-50 focus:outline-none ${openId === st.id ? 'bg-amber-50' : ''}">
-            <span class="w-10 h-10 rounded-full ${s.solid} ${stale ? 'opacity-50' : ''} text-white flex items-center justify-center shrink-0"><i class="fa-solid ${s.icon}"></i></span>
+            <span class="w-10 h-10 rounded-full ${s.solid} ${stale ? 'opacity-50' : ''} text-white flex items-center justify-center shrink-0"><i class="fa-solid ${iconOf(st)}"></i></span>
             <span class="flex-1 min-w-0">
                 <span class="block text-[15px] font-bold text-slate-900 truncate">${esc(st.name)}</span>
                 <span class="block text-[13px] text-slate-500 truncate">${esc(where)}</span>
@@ -180,6 +184,7 @@ function initMap() {
     map = L.map('map', { zoomControl: true, attributionControl: true }).setView([BENEVENTO.lat, BENEVENTO.lng], 13);
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
     map.on('click', () => { if (sheetMode === 'station') closeSheet(); });
+    map.on('zoomend', () => renderMarkers());
     if (window.ResizeObserver) new ResizeObserver(() => map.invalidateSize()).observe($('map'));
 }
 function renderMarkers() {
@@ -187,16 +192,24 @@ function renderMarkers() {
     Object.values(markers).forEach(m => map.removeLayer(m));
     markers = {};
     const ids = new Set(visibleStations().map(s => s.id));
-    // pompe quasi nello stesso punto (meno di 40 m): i segnaposto si affiancano di qualche pixel,
-    // altrimenti quella sotto non si può toccare (es. Eni e "Via Napoli")
-    const SHIFTS = [[20, 0], [-20, 0], [0, -20], [0, 20], [20, -20], [-20, 20]];
-    const placed = [];
-    const shiftOf = (st) => { const twins = placed.filter(p => km(p, st) < 0.04).length; placed.push(st); return twins ? SHIFTS[(twins - 1) % SHIFTS.length] : [0, 0]; };
-    stations.slice().sort((a, b) => a.id.localeCompare(b.id)).forEach(st => {
+    // segnaposto che sullo schermo si sovrapporrebbero (allo zoom attuale): si affiancano di qualche pixel,
+    // altrimenti quello sotto non si può toccare; zoomando tornano al loro punto esatto
+    const SHIFTS = [[0, 0], [24, 0], [-24, 0], [0, -24], [0, 24], [24, -24], [-24, 24], [24, 24], [-24, -24], [48, 0], [-48, 0], [0, -48], [0, 48]];
+    const placedPx = [];
+    const shiftOf = (st) => {
+        const pt = map.latLngToLayerPoint([st.lat, st.lng]);
+        // la prima posizione libera rispetto ai segnaposto già sistemati (prima il punto esatto)
+        const free = SHIFTS.find(([dx, dy]) => !placedPx.some(p => p.distanceTo(L.point(pt.x + dx, pt.y + dy)) < 26)) || [0, 0];
+        placedPx.push(L.point(pt.x + free[0], pt.y + free[1]));
+        return free;
+    };
+    // si sistemano prima la pompa aperta e quelle con notizie fresche: restano nel loro punto esatto
+    const priority = (st) => (st.id === openId ? 0 : st.status === 'unverified' ? 3 : isStale(st) ? 2 : 1);
+    stations.slice().sort((a, b) => priority(a) - priority(b) || a.id.localeCompare(b.id)).forEach(st => {
         if (!ids.has(st.id)) return;
         const sel = openId === st.id, stale = isStale(st);
         const [dx, dy] = shiftOf(st);
-        const icon = L.divIcon({ className: '', html: `<div class="pin pin-${st.status}${stale ? ' pin-stale' : ''}${sel ? ' pin-selected' : ''}"><i class="fa-solid ${STATUS[st.status].icon}"></i></div>`, iconSize: [34, 34], iconAnchor: [17 - dx, 17 - dy] });
+        const icon = L.divIcon({ className: '', html: `<div class="pin pin-${st.status}${stale ? ' pin-stale' : ''}${sel ? ' pin-selected' : ''}"><i class="fa-solid ${iconOf(st)}"></i></div>`, iconSize: [34, 34], iconAnchor: [17 - dx, 17 - dy] });
         const z = sel ? 1000 : st.status === 'unverified' ? 0 : stale ? 100 : 500;
         markers[st.id] = L.marker([st.lat, st.lng], { icon, zIndexOffset: z, title: st.name, keyboard: true }).on('click', () => openStation(st.id)).addTo(map);
     });
@@ -307,7 +320,7 @@ function renderStationSheet() {
 
             <div class="mt-4 rounded-2xl border ${s.ring} ${s.bg} p-4">
                 <div class="flex items-center gap-3">
-                    <span class="w-12 h-12 rounded-full ${s.solid} ${stale ? 'opacity-50' : ''} text-white text-xl flex items-center justify-center shrink-0"><i class="fa-solid ${s.icon}"></i></span>
+                    <span class="w-12 h-12 rounded-full ${s.solid} ${stale ? 'opacity-50' : ''} text-white text-xl flex items-center justify-center shrink-0"><i class="fa-solid ${iconOf(st)}"></i></span>
                     <div>
                         <div class="text-[20px] font-extrabold ${s.text}">${s.label}</div>
                         <div class="text-[13px] text-slate-600">${st.lastUpdated ? `Ultimo voto ${ago(st.lastUpdated)} (alle ${clock(st.lastUpdated)})` : 'Ancora nessuna segnalazione'}</div>
@@ -329,6 +342,7 @@ function renderStationSheet() {
                         return `<button onclick="vote('${k}')" aria-pressed="${!!on}" class="h-20 rounded-2xl border-2 flex flex-col items-center justify-center gap-1 text-[14px] font-bold transition active:scale-95 ${on ? `${c.solid} border-transparent text-white` : `bg-white ${c.ring} ${c.text}`}"><i class="fa-solid ${c.icon} text-lg"></i>${c.short}${on ? '<span class="text-[11px] font-semibold opacity-90">il tuo voto</span>' : ''}</button>`;
                     }).join('')}
                 </div>
+                <p class="mt-1.5 text-[12px] text-slate-500"><strong>Limitata</strong> = il carburante c’è ma con limiti (solo alcuni tipi, poca scorta, tetto di spesa). Le code si indicano qui sotto.</p>
                 ${detailsOpen ? `
                 <div class="mt-3 rounded-2xl bg-slate-50 border border-slate-200 p-3.5 space-y-3">
                     <div>
@@ -339,7 +353,7 @@ function renderStationSheet() {
                         <div class="text-[14px] font-bold mb-1.5"><i class="fa-solid fa-car-side mr-1 text-slate-500"></i>C’è coda?</div>
                         <div class="flex flex-wrap gap-1.5">${QUEUE_CHOICES.map(qq => `<button onclick="setQueue('${qq}')" aria-pressed="${draft.queue === qq}" class="h-10 px-3 rounded-xl border text-[13px] font-semibold ${draft.queue === qq ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white border-slate-300 hover:bg-slate-100'}">${QUEUE_LABELS[qq]}</button>`).join('')}</div>
                     </div>
-                    ${mine ? '' : '<p class="text-[13px] text-slate-500"><i class="fa-solid fa-arrow-up mr-1"></i>Tocca Aperta o Code qui sopra per inviare: carburanti e coda partono insieme al voto.</p>'}
+                    ${mine ? '' : '<p class="text-[13px] text-slate-500"><i class="fa-solid fa-arrow-up mr-1"></i>Tocca Aperta o Limitata qui sopra per inviare: carburanti e coda partono insieme al voto.</p>'}
                 </div>` : ''}
                 ${mine ? '<button onclick="vote(null)" class="mt-3 text-[13px] font-semibold text-red-700 underline">Togli il mio voto</button>' : ''}
             </div>
@@ -432,9 +446,10 @@ window.openHowItWorks = function () {
         <div class="px-5 pt-2 pb-safe">
             <div class="flex items-start gap-3"><h2 id="sheetTitle" class="flex-1 text-[20px] font-extrabold">Come funziona</h2>${closeBtn}</div>
             <div class="mt-3 space-y-3 text-[15px] text-slate-700">
-                <p><strong>Lo stato lo segnalano i cittadini.</strong> Chi passa davanti a una pompa la vota: Aperta, Code o Esaurita. Non serve registrarsi.</p>
+                <p><strong>Lo stato lo segnalano i cittadini.</strong> Chi passa davanti a una pompa la vota: Aperta, Limitata o Esaurita. Non serve registrarsi.</p>
+                <p><strong>Limitata</strong> vuol dire che il carburante c’è ma con limiti: solo alcuni tipi, poca scorta, un tetto di spesa. <strong>Le code si segnalano a parte</strong>: una pompa aperta con coda ha la clessidra verde.</p>
                 <p><strong>Un voto a persona per pompa.</strong> Puoi cambiarlo o toglierlo quando vuoi.</p>
-                <p><strong>Vince lo stato con più voti.</strong> A parità vince il più prudente (Esaurita, poi Code, poi Aperta): meglio non mandare nessuno a vuoto.</p>
+                <p><strong>Vince lo stato con più voti.</strong> A parità vince il più prudente (Esaurita, poi Limitata, poi Aperta): meglio non mandare nessuno a vuoto.</p>
                 <p><strong>Le notizie invecchiano.</strong> Se per 45 minuti nessuno conferma lo stato, il primo voto diverso lo cambia subito (per esempio una pompa che riapre). Nella scheda trovi il totale delle segnalazioni ricevute. Dopo 3 ore senza conferme la pompa appare tratteggiata: la notizia potrebbe non valere più.</p>
                 <p><strong>Code e carburanti</strong> sono quelli indicati nell’ultima segnalazione.</p>
                 <p class="text-[13px] text-slate-500">Il sito non chiede nomi né account. Per riconoscere il tuo voto usa un codice casuale salvato solo sul tuo telefono.</p>
@@ -504,7 +519,7 @@ function renderAddSheet() {
             <label class="flex items-center gap-2 mt-2.5 font-semibold"><input type="checkbox" ${a.dupConfirmed ? 'checked' : ''} onchange="addState.dupConfirmed=this.checked; renderAddSheet()" class="w-5 h-5 accent-amber-600"> No, è un’altra pompa</label>
         </div>` : ''}
         <div class="mt-4"><span class="text-[14px] font-bold">Com’è adesso? *</span>
-            <div class="grid grid-cols-4 gap-1.5 mt-1">${[['available', 'Aperta'], ['limited', 'Code'], ['closed', 'Esaurita'], [null, 'Non so']].map(([k, l]) => `<button onclick="addState.status=${k ? `'${k}'` : 'null'}; renderAddSheet()" class="h-12 rounded-xl border text-[13px] font-bold ${a.status === k ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white border-slate-300'}">${l}</button>`).join('')}</div>
+            <div class="grid grid-cols-4 gap-1.5 mt-1">${[['available', 'Aperta'], ['limited', 'Limitata'], ['closed', 'Esaurita'], [null, 'Non so']].map(([k, l]) => `<button onclick="addState.status=${k ? `'${k}'` : 'null'}; renderAddSheet()" class="h-12 rounded-xl border text-[13px] font-bold ${a.status === k ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white border-slate-300'}">${l}</button>`).join('')}</div>
         </div>
         ${a.status === 'available' || a.status === 'limited' ? `<div class="mt-3"><span class="text-[14px] font-bold">Quali carburanti ci sono?</span>
             <div class="flex flex-wrap gap-1.5 mt-1">${[['benzina', 'Benzina'], ['diesel', 'Diesel'], ['gpl', 'GPL']].map(([k, l]) => `<label class="inline-flex items-center gap-2 h-11 px-3 rounded-xl border bg-white text-[14px] font-semibold ${a.fuels[k] ? 'border-emerald-500 text-emerald-800' : 'border-slate-300 text-slate-500'}"><input type="checkbox" ${a.fuels[k] ? 'checked' : ''} onchange="addState.fuels.${k}=this.checked; renderAddSheet()" class="w-5 h-5 accent-emerald-600">${l}</label>`).join('')}</div></div>` : ''}
