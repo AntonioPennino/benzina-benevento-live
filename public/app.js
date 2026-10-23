@@ -184,6 +184,7 @@ function initMap() {
     map = L.map('map', { zoomControl: true, attributionControl: true }).setView([BENEVENTO.lat, BENEVENTO.lng], 13);
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
     map.on('click', () => { if (sheetMode === 'station') closeSheet(); });
+    map.on('zoomend', () => renderMarkers());
     if (window.ResizeObserver) new ResizeObserver(() => map.invalidateSize()).observe($('map'));
 }
 function renderMarkers() {
@@ -191,11 +192,16 @@ function renderMarkers() {
     Object.values(markers).forEach(m => map.removeLayer(m));
     markers = {};
     const ids = new Set(visibleStations().map(s => s.id));
-    // pompe quasi nello stesso punto (meno di 40 m): i segnaposto si affiancano di qualche pixel,
-    // altrimenti quella sotto non si può toccare (es. Eni e "Via Napoli")
-    const SHIFTS = [[20, 0], [-20, 0], [0, -20], [0, 20], [20, -20], [-20, 20]];
+    // segnaposto che sullo schermo si sovrapporrebbero (allo zoom attuale): si affiancano di qualche pixel,
+    // altrimenti quello sotto non si può toccare; zoomando tornano al loro punto esatto
+    const SHIFTS = [[22, 0], [-22, 0], [0, -22], [0, 22], [22, -22], [-22, 22], [22, 22], [-22, -22]];
     const placed = [];
-    const shiftOf = (st) => { const twins = placed.filter(p => km(p, st) < 0.04).length; placed.push(st); return twins ? SHIFTS[(twins - 1) % SHIFTS.length] : [0, 0]; };
+    const shiftOf = (st) => {
+        const pt = map.latLngToLayerPoint([st.lat, st.lng]);
+        const twins = placed.filter(p => p.distanceTo(pt) < 26).length;
+        placed.push(pt);
+        return twins ? SHIFTS[(twins - 1) % SHIFTS.length] : [0, 0];
+    };
     stations.slice().sort((a, b) => a.id.localeCompare(b.id)).forEach(st => {
         if (!ids.has(st.id)) return;
         const sel = openId === st.id, stale = isStale(st);
