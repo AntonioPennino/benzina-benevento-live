@@ -194,15 +194,18 @@ function renderMarkers() {
     const ids = new Set(visibleStations().map(s => s.id));
     // segnaposto che sullo schermo si sovrapporrebbero (allo zoom attuale): si affiancano di qualche pixel,
     // altrimenti quello sotto non si può toccare; zoomando tornano al loro punto esatto
-    const SHIFTS = [[22, 0], [-22, 0], [0, -22], [0, 22], [22, -22], [-22, 22], [22, 22], [-22, -22]];
-    const placed = [];
+    const SHIFTS = [[0, 0], [24, 0], [-24, 0], [0, -24], [0, 24], [24, -24], [-24, 24], [24, 24], [-24, -24], [48, 0], [-48, 0], [0, -48], [0, 48]];
+    const placedPx = [];
     const shiftOf = (st) => {
         const pt = map.latLngToLayerPoint([st.lat, st.lng]);
-        const twins = placed.filter(p => p.distanceTo(pt) < 26).length;
-        placed.push(pt);
-        return twins ? SHIFTS[(twins - 1) % SHIFTS.length] : [0, 0];
+        // la prima posizione libera rispetto ai segnaposto già sistemati (prima il punto esatto)
+        const free = SHIFTS.find(([dx, dy]) => !placedPx.some(p => p.distanceTo(L.point(pt.x + dx, pt.y + dy)) < 26)) || [0, 0];
+        placedPx.push(L.point(pt.x + free[0], pt.y + free[1]));
+        return free;
     };
-    stations.slice().sort((a, b) => a.id.localeCompare(b.id)).forEach(st => {
+    // si sistemano prima la pompa aperta e quelle con notizie fresche: restano nel loro punto esatto
+    const priority = (st) => (st.id === openId ? 0 : st.status === 'unverified' ? 3 : isStale(st) ? 2 : 1);
+    stations.slice().sort((a, b) => priority(a) - priority(b) || a.id.localeCompare(b.id)).forEach(st => {
         if (!ids.has(st.id)) return;
         const sel = openId === st.id, stale = isStale(st);
         const [dx, dy] = shiftOf(st);
