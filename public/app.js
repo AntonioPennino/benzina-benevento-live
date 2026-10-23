@@ -852,13 +852,24 @@
         }
 
         // posizione esatta di un indirizzo dal servizio di ricerca di OpenStreetMap (Nominatim); null se non trovato
+        // si accetta solo un risultato nel comune giusto: "Via Aldo Moro, Benevento BN" altrimenti portava alla
+        // Via Aldo Moro di Sant'Angelo a Cupolo ("Benevento" vale anche come provincia)
+        const placeKey = (t) => (t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[’`]/g, "'").trim();
         async function geocodeAddress(address, place) {
-            const q = address.toLowerCase().includes(place.toLowerCase()) ? address : `${address}, ${place}`;
-            const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=it&accept-language=it&q=${encodeURIComponent(q)}`;
+            const inPlace = (h) => { const a = h.address || {}; return placeKey(a.city || a.town || a.village || a.municipality) === placeKey(place); };
+            const search = async (params) => {
+                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&addressdetails=1&countrycodes=it&accept-language=it&${params}`, { signal: AbortSignal.timeout(8000) });
+                return res.ok ? (await res.json()).find(inPlace) : null;
+            };
             try {
-                const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
-                if (!res.ok) return null;
-                const [hit] = await res.json();
+                const q = address.toLowerCase().includes(place.toLowerCase()) ? address : `${address}, ${place}`;
+                let hit = await search(`q=${encodeURIComponent(q)}`);
+                // secondo tentativo: solo il nome della via (senza "Via", "Viale"… e numero) nel comune scelto,
+                // così "Via Aldo Moro" trova il Viale Aldo Moro di Benevento
+                if (!hit) {
+                    const street = address.split(',')[0].replace(/\d+\w?/g, '').replace(/^\s*(via|viale|v\.le|piazza|p\.zza|corso|c\.so|contrada|c\.da|largo|vico|vicolo|strada)\s+/i, '').trim();
+                    if (street.length >= 3) hit = await search(`street=${encodeURIComponent(street)}&city=${encodeURIComponent(place)}`);
+                }
                 if (!hit) return null;
                 const pos = { lat: Number(hit.lat), lng: Number(hit.lon) };
                 return Number.isFinite(pos.lat) && Number.isFinite(pos.lng) ? pos : null;
