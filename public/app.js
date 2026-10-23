@@ -45,6 +45,7 @@
         let dataLoaded = false;
         let loadFailed = false;  // il primo caricamento non è riuscito (l'elenco lo dice invece di restare vuoto)
         let mapFramed = false;   // la mappa è già stata inquadrata sui distributori
+        let deepLinkDone = false; // link diretto a una pompa (?p=...) già aperto
         let userPos = null;      // posizione del telefono, solo se si sceglie "Più vicini a me"
         let userMarker = null;
         let pendingVotes = 0;   // voti in corso di salvataggio: intanto l'aggiornamento periodico aspetta
@@ -137,6 +138,7 @@
                 loadFailed = false;
                 updateConnectionUI(true, "Dati condivisi in tempo reale");
                 renderAll();
+                openDeepLink();
                 frameMapOnStations();
             } catch (err) {
                 console.warn('Elenco distributori non aggiornato', err);
@@ -241,6 +243,38 @@
             leafletMap.fitBounds(b, { padding: [24, 24], maxZoom: 15 });
         }
 
+        // benzinabn.it/?p=<id>: apre la scheda di quella pompa (link mandato con "Condividi")
+        function openDeepLink() {
+            if (deepLinkDone) return;
+            deepLinkDone = true;
+            const id = new URLSearchParams(location.search).get('p');
+            const st = id && stationsData.find(s => s.id === id);
+            if (!st) return;
+            if (leafletMap) { leafletMap.setView([st.lat, st.lng], 15); mapFramed = true; }
+            window.handlePinClick(id);
+        }
+
+        // Condividi la pompa della scheda aperta: menu di condivisione del telefono (WhatsApp, Telegram…),
+        // altrimenti il link viene copiato
+        window.shareStation = async function() {
+            const st = stationsData.find(s => s.id === modalStationId);
+            if (!st) return;
+            const cfg = getStatusConfig(st.status);
+            const lv = lastVoteOf(st);
+            const url = `${location.origin}/?p=${encodeURIComponent(st.id)}`;
+            const text = `⛽ ${st.name}: ${cfg.emoji} ${cfg.shortLabel.toLowerCase()}${lv ? ` (ultimo voto ${formatRelativeTime(lv.ts).toLowerCase()})` : ''}. Guarda e aggiorna anche tu:`;
+            if (navigator.share) {
+                try { await navigator.share({ title: 'Benzina Benevento Live', text, url }); return; }
+                catch (e) { if (e.name === 'AbortError') return; }
+            }
+            try {
+                await navigator.clipboard.writeText(`${text} ${url}`);
+                showToast('Link copiato', 'Incollalo dove vuoi, ad esempio in un gruppo WhatsApp.');
+            } catch (e) {
+                window.open(`https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`, '_blank', 'noopener');
+            }
+        };
+
         function initLeafletMapIfNeeded() {
             if (leafletMap) return;
             if (!window.L) {
@@ -259,6 +293,10 @@
             renderLeafletMarkers();
         }
 
+        // stato non confermato da più di così: sulla mappa la pompa appare sbiadita
+        const STALE_MS = 3 * 60 * 60 * 1000;
+        const isStaleStatus = (st) => st.status !== 'unverified' && st.lastUpdated && (Date.now() - st.lastUpdated) > STALE_MS;
+
         function renderLeafletMarkers() {
             if (!leafletMap) return;
             Object.values(leafletMarkers).forEach(m => leafletMap.removeLayer(m));
@@ -268,13 +306,17 @@
             stationsData.forEach(station => {
                 if (!filteredIds.has(station.id)) return;
                 const cfg = getStatusConfig(station.status);
-                const size = selectedStationId === station.id ? 40 : 34;
+                const selected = selectedStationId === station.id;
+                const size = selected ? 40 : 34;
+                const stale = isStaleStatus(station);
                 const icon = L.divIcon({
                     className: '',
-                    html: `<div class="custom-leaflet-pin" style="width:${size}px;height:${size}px;background:${cfg.hex};"><i class="fa-solid fa-gas-pump text-xs"></i></div>`,
+                    html: `<div class="custom-leaflet-pin${stale ? ' pin-stale' : ''}" style="width:${size}px;height:${size}px;background:${cfg.hex};"><i class="fa-solid fa-gas-pump text-xs"></i></div>`,
                     iconSize: [size, size], iconAnchor: [size / 2, size / 2]
                 });
-                const marker = L.marker([station.lat, station.lng], { icon }).addTo(leafletMap);
+                // le pompe con notizie fresche stanno sopra a quelle vecchie o da verificare, se si sovrappongono
+                const z = selected ? 1000 : station.status === 'unverified' ? 0 : stale ? 100 : 500;
+                const marker = L.marker([station.lat, station.lng], { icon, zIndexOffset: z, title: station.name }).addTo(leafletMap);
                 marker.on('click', () => window.handlePinClick(station.id));
                 leafletMarkers[station.id] = marker;
             });
@@ -771,6 +813,32 @@
             }
         }
 
+        // Cerca su OpenStreetMap il distributore vero vicino all'indirizzo, per nome (es. "Oroil") o marchio
+        // (es. "IP"): un indirizzo senza numero civico porta solo a metà via, spesso sul distributore accanto.
+        // Restituisce la posizione del distributore trovato, oppure null.
+        async function findFuelStation(name, brand, near) {
+            const d = 0.006; // circa 600 m attorno all'indirizzo
+            const viewbox = `${near.lng - d},${near.lat + d},${near.lng + d},${near.lat - d}`;
+            const terms = [...new Set([name.split(' - ')[0].trim(), brand === 'Pompa Bianca' ? '' : brand].filter(t => t && t.length >= 2))];
+            for (const term of terms) {
+                try {
+                    const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&countrycodes=it&accept-language=it&bounded=1&viewbox=${viewbox}&q=${encodeURIComponent(term)}`;
+                    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+                    if (!res.ok) continue;
+                    const fuel = (await res.json()).filter(h => h.category === 'amenity' && h.type === 'fuel')
+                        .map(h => ({ lat: Number(h.lat), lng: Number(h.lon), name: (h.name || '').toLowerCase() }))
+                        .filter(h => Number.isFinite(h.lat) && Number.isFinite(h.lng));
+                    if (!fuel.length) continue;
+                    // a parità, il più vicino all'indirizzo scritto
+                    fuel.sort((a, b) => distanceKm(a, near) - distanceKm(b, near));
+                    return { lat: fuel[0].lat, lng: fuel[0].lng };
+                } catch (err) {
+                    console.warn('Ricerca distributore non riuscita', err);
+                }
+            }
+            return null;
+        }
+
         window.handleAddStationSubmit = async function(e) {
             e.preventDefault();
             const brand = document.getElementById('newStationBrand').value;
@@ -789,6 +857,7 @@
             const submitLabel = submitBtn.textContent;
             submitBtn.disabled = true; submitBtn.textContent = "Cerco l'indirizzo…";
             let pos = await geocodeAddress(address, isOtherComune ? zone : 'Benevento');
+            if (pos) pos = (await findFuelStation(name, brand, pos)) || pos;
             submitBtn.disabled = false; submitBtn.textContent = submitLabel;
             if (isOtherComune && !pos) {
                 showToast('Indirizzo non trovato', `Controlla via e comune (${zone}) e riprova.`);

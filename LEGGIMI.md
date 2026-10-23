@@ -55,8 +55,10 @@ HTML statico + JavaScript nel browser. L'unico passaggio di "build" è lo stile:
 - Finché non arrivano i dati l'elenco mostra "Caricamento distributori…" (niente pompe finte). La prima richiesta a `/api/stations` parte già dall'`<head>` di `index.html`, in parallelo al resto.
 - Al primo caricamento la mappa inquadra i distributori entro 6 km dal centro.
 - Ordine "Più vicini a me": chiede la posizione al browser solo quando lo si sceglie, ordina per distanza, mostra la distanza su ogni scheda e un pallino blu sulla mappa.
+- Sulla mappa le pompe il cui stato non riceve conferme da più di 3 ore sono sbiadite (`STALE_MS`); se si sovrappongono, quelle con notizie fresche stanno sopra.
+- "Condividi" nella scheda grande: menu di condivisione del telefono, oppure copia il link `benzinabn.it/?p=<id>`, che apre direttamente la scheda di quella pompa.
 - Toccando una pompa si apre la scheda grande e, sotto la mappa, la scheda rapida; un tocco fuori dalla scheda rapida (o Esc) la chiude.
-- Nuovo distributore: la pompa va nel punto esatto dell'indirizzo, cercato con Nominatim (OpenStreetMap). Con "Altro Comune…" si scrive il comune e, se l'indirizzo non si trova, il distributore non viene aggiunto; a Benevento, se la ricerca fallisce, si usa la zona scelta.
+- Nuovo distributore: la pompa va nel punto esatto dell'indirizzo, cercato con Nominatim (OpenStreetMap); poi si cerca nei dintorni (circa 600 m) il distributore vero con lo stesso nome o marchio (`findFuelStation`) e, se c'è, si usa la sua posizione. Con "Altro Comune…" si scrive il comune e, se l'indirizzo non si trova, il distributore non viene aggiunto; a Benevento, se la ricerca fallisce, si usa la zona scelta.
 
 ## Pubblicazione (Cloudflare Pages)
 Progetto Cloudflare Pages: `benzina-benevento-live`, ramo di produzione `main`. Si pubblica con la CLI dalla cartella del progetto (la prima volta `npm install` e `npx wrangler login`):
