@@ -13,11 +13,11 @@
     <!-- I distributori si chiedono subito, mentre il resto della pagina si carica (li usa app.js) -->
     <script>window.__stationsRequest = fetch('/api/stations', { cache: 'no-store' }).catch(function () { return null; });</script>
     <link rel="stylesheet" href="/styles.css?v=dev">
+    <link rel="preload" as="font" type="font/woff2" href="/vendor/fa/fa-solid-900.c247c795.woff2" crossorigin>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://tile.openstreetmap.org" crossorigin>
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400..800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
-    <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" onload="this.onload=null;this.rel='stylesheet'">
     <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
     <script src="/vendor/leaflet/leaflet.js" defer></script>
     <style>
@@ -42,6 +42,8 @@
         .pin-me { width: 18px; height: 18px; border-radius: 9999px; background: #2563EB; border: 3px solid #fff; box-shadow: 0 0 0 6px rgba(37,99,235,.25); }
         /* scheda in basso (telefono) / pannello laterale (computer) */
         #sheet { transition: transform .25s ease; }
+        /* svh = schermo con la barra del browser visibile: con vh una scheda lunga finiva sotto il bordo in alto (nome e X nascosti) */
+        @media (max-width: 1023px) { #sheet { max-height: 90vh; max-height: 90svh; } }
         #sheet.closed { transform: translateY(105%); }
         @media (min-width: 1024px) { #sheet.closed { transform: translateX(110%); } }
         .no-scrollbar::-webkit-scrollbar { display: none; } .no-scrollbar { scrollbar-width: none; }
@@ -54,7 +56,7 @@
         <div class="max-w-7xl mx-auto px-4 h-14 flex items-center gap-3">
             <span class="w-9 h-9 rounded-xl bg-amber-400 text-slate-900 flex items-center justify-center shrink-0"><i class="fa-solid fa-gas-pump"></i></span>
             <div class="min-w-0 leading-tight">
-                <div class="font-extrabold text-[15px] truncate">Benzina Benevento <span class="text-amber-400">Live</span></div>
+                <h1 class="font-extrabold text-[15px] truncate">Benzina Benevento <span class="text-amber-400">Live</span></h1>
                 <div id="liveStatus" class="text-[12px] text-slate-300 truncate"><span class="inline-block w-1.5 h-1.5 rounded-full bg-slate-400 mr-1 align-middle"></span>Caricamento…</div>
             </div>
             <button onclick="openHowItWorks()" class="ml-auto hidden sm:inline-flex items-center gap-1.5 px-3 h-10 rounded-xl text-[13px] font-semibold text-slate-200 hover:bg-slate-800"><i class="fa-regular fa-circle-question"></i> Come funziona</button>
@@ -62,13 +64,13 @@
         </div>
     </header>
 
-    <div id="alertStrip" class="bg-amber-100 border-b border-amber-200 text-amber-950 text-[13px]">
+    <section id="alertStrip" aria-label="Avviso" class="bg-amber-100 border-b border-amber-200 text-amber-950 text-[13px]">
         <div class="max-w-7xl mx-auto px-4 py-2 flex items-start gap-2">
             <i class="fa-solid fa-triangle-exclamation mt-0.5 text-amber-600"></i>
             <p class="flex-1">Sciopero dei TIR: lo stato delle pompe lo segnalano i cittadini. <button onclick="openHowItWorks()" class="font-bold underline">Come funziona</button></p>
             <button onclick="this.closest('#alertStrip').remove()" aria-label="Chiudi avviso" class="w-8 h-8 -m-1.5 rounded-lg hover:bg-amber-200 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
         </div>
-    </div>
+    </section>
 
     <main class="layout max-w-7xl mx-auto lg:px-4 lg:gap-x-4">
         <!-- riepilogo (è anche il filtro), ricerca, vicino a me -->
@@ -106,7 +108,7 @@
             </div>
             <div id="list" role="list"></div>
             <details id="news" class="border-t border-slate-100">
-                <summary class="px-4 py-3 text-[14px] font-semibold text-slate-700 cursor-pointer"><i class="fa-regular fa-newspaper mr-1.5"></i>Notizie dalla stampa locale <span id="newsCount" class="text-slate-400"></span></summary>
+                <summary class="px-4 py-3 text-[14px] font-semibold text-slate-700 cursor-pointer"><i class="fa-regular fa-newspaper mr-1.5"></i>Notizie dalla stampa locale <span id="newsCount" class="text-slate-500"></span></summary>
                 <ul id="newsList" class="px-4 pb-4 space-y-2.5 text-[14px]"></ul>
             </details>
         </section>
@@ -114,7 +116,7 @@
 
     <!-- scheda della pompa / nuova pompa / come funziona -->
     <div id="sheetBackdrop" onclick="closeSheet()" class="fixed inset-0 z-40 bg-slate-900/40 hidden lg:hidden"></div>
-    <aside id="sheet" class="closed fixed z-50 inset-x-0 bottom-0 max-h-[90vh] overflow-y-auto bg-white rounded-t-3xl shadow-2xl lg:inset-auto lg:right-6 lg:top-20 lg:bottom-6 lg:w-[420px] lg:max-h-none lg:rounded-3xl" role="dialog" aria-modal="true" aria-labelledby="sheetTitle"></aside>
+    <aside id="sheet" class="closed fixed z-50 inset-x-0 bottom-0 overflow-y-auto bg-white rounded-t-3xl shadow-2xl lg:inset-auto lg:right-6 lg:top-20 lg:bottom-6 lg:w-[420px] lg:max-h-none lg:rounded-3xl" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" aria-hidden="true" inert></aside>
 
     <div id="toast" class="fixed z-[60] left-1/2 -translate-x-1/2 bottom-6 hidden items-center gap-3 bg-slate-900 text-white pl-4 pr-2 py-2 rounded-2xl shadow-xl text-[14px] max-w-[calc(100%-2rem)]" role="status">
         <span id="toastText"></span>

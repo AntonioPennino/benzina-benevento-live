@@ -161,7 +161,7 @@ function renderList() {
         const s = STATUS[st.status], stale = isStale(st), mine = myVote(st), q = queueText(st);
         const where = [st.address, me ? fmtKm(km(me, st)) : st.zone].filter(Boolean).join(' · ');
         return `
-        <button role="listitem" onclick="openStation('${esc(st.id)}')" class="w-full text-left flex items-center gap-3 px-4 py-3 border-b border-slate-100 hover:bg-slate-50 focus:bg-amber-50 focus:outline-none ${openId === st.id ? 'bg-amber-50' : ''}">
+        <div role="listitem" data-id="${esc(st.id)}"><button onclick="openStation('${esc(st.id)}')" class="w-full text-left flex items-center gap-3 px-4 py-3 border-b border-slate-100 hover:bg-slate-50 focus:bg-amber-50 focus:outline-none ${openId === st.id ? 'bg-amber-50' : ''}">
             <span class="w-10 h-10 rounded-full ${s.solid} ${stale ? 'opacity-50' : ''} text-white flex items-center justify-center shrink-0"><i class="fa-solid ${iconOf(st)}"></i></span>
             <span class="flex-1 min-w-0">
                 <span class="block text-[15px] font-bold text-slate-900 truncate">${esc(st.name)}</span>
@@ -171,10 +171,10 @@ function renderList() {
             <span class="text-right shrink-0 max-w-[38%]">
                 <span class="block text-[14px] font-bold ${stale ? 'text-slate-500' : s.text}">${s.short}</span>
                 <span class="block text-[12px] ${stale ? 'text-amber-700 font-semibold' : 'text-slate-500'}">${st.lastUpdated ? (stale ? 'da confermare · ' : '') + ago(st.lastUpdated) : 'sei lì? segnala'}</span>
-                ${Object.keys(st.votes || {}).length ? `<span class="block text-[11px] text-slate-400">${Object.keys(st.votes).length} ${Object.keys(st.votes).length === 1 ? 'segnalazione' : 'segnalazioni'}</span>` : ''}
+                ${Object.keys(st.votes || {}).length ? `<span class="block text-[11px] text-slate-500">${Object.keys(st.votes).length} ${Object.keys(st.votes).length === 1 ? 'segnalazione' : 'segnalazioni'}</span>` : ''}
                 ${mine ? '<span class="block text-[11px] text-blue-700 font-semibold">hai votato</span>' : ''}
             </span>
-        </button>`;
+        </button></div>`;
     }).join('');
 }
 
@@ -192,14 +192,17 @@ function renderMarkers() {
     Object.values(markers).forEach(m => map.removeLayer(m));
     markers = {};
     const ids = new Set(visibleStations().map(s => s.id));
-    // segnaposto che sullo schermo si sovrapporrebbero (allo zoom attuale): si affiancano di qualche pixel,
-    // altrimenti quello sotto non si può toccare; zoomando tornano al loro punto esatto
-    const SHIFTS = [[0, 0], [24, 0], [-24, 0], [0, -24], [0, 24], [24, -24], [-24, 24], [24, 24], [-24, -24], [48, 0], [-48, 0], [0, -48], [0, 48]];
+    // segnaposto che sullo schermo si sovrapporrebbero (allo zoom attuale): si affiancano senza toccarsi,
+    // altrimenti quello sotto non si può toccare col dito; zoomando tornano al loro punto esatto.
+    // Posizioni provate: il punto esatto, poi due giri di caselle da 36 px intorno, dalle più vicine
+    const SHIFTS = [];
+    for (let x = -2; x <= 2; x++) for (let y = -2; y <= 2; y++) SHIFTS.push([x * 36, y * 36]);
+    SHIFTS.sort((p, q) => Math.hypot(...p) - Math.hypot(...q));
     const placedPx = [];
     const shiftOf = (st) => {
         const pt = map.latLngToLayerPoint([st.lat, st.lng]);
         // la prima posizione libera rispetto ai segnaposto già sistemati (prima il punto esatto)
-        const free = SHIFTS.find(([dx, dy]) => !placedPx.some(p => p.distanceTo(L.point(pt.x + dx, pt.y + dy)) < 26)) || [0, 0];
+        const free = SHIFTS.find(([dx, dy]) => !placedPx.some(p => p.distanceTo(L.point(pt.x + dx, pt.y + dy)) < 35)) || [0, 0];
         placedPx.push(L.point(pt.x + free[0], pt.y + free[1]));
         return free;
     };
@@ -256,22 +259,50 @@ window.toggleNearMe = function () {
 };
 
 // ---------- scheda (in basso su telefono, a lato su computer) ----------
-function showSheet(html) {
+let sheetKey = null, sheetOpener = null;
+const focusablesIn = (el) => [...el.querySelectorAll('button, a[href], input, select, textarea')];
+// key: quale scheda è (pompa, passo del modulo…). La stessa scheda ridisegnata (voto, aggiornamento ogni 20 s)
+// resta dov'era, anche col cursore della tastiera; una scheda nuova riparte dall'inizio, col cursore sul titolo
+function showSheet(html, key) {
     const sh = $('sheet');
+    const wasClosed = sh.classList.contains('closed');
+    const same = !wasClosed && key === sheetKey;
+    const focusIdx = same ? focusablesIn(sh).indexOf(document.activeElement) : -1;
+    const scroll = sh.scrollTop;
+    if (wasClosed) sheetOpener = document.activeElement;
+    sheetKey = key;
     sh.innerHTML = `<div class="lg:hidden pt-2.5 pb-1 flex justify-center"><span class="w-10 h-1.5 rounded-full bg-slate-300"></span></div>${html}`;
     sh.classList.remove('closed');
+    sh.removeAttribute('aria-hidden'); sh.inert = false;
     $('sheetBackdrop').classList.remove('hidden');
-    sh.scrollTop = 0;
+    if (same) {
+        sh.scrollTop = scroll;
+        const el = focusablesIn(sh)[focusIdx];
+        if (el) { el.focus({ preventScroll: true }); try { if (el.type === 'text') el.setSelectionRange(el.value.length, el.value.length); } catch (e) {} }
+    } else {
+        sh.scrollTop = 0;
+        $('sheetTitle')?.focus({ preventScroll: true });
+    }
 }
 window.closeSheet = function (fromHistory) {
     if (!sheetMode) return;
-    $('sheet').classList.add('closed');
+    const sh = $('sheet'), closedId = openId;
+    const focusWasInside = sh.contains(document.activeElement) || document.activeElement === document.body;
+    sh.classList.add('closed');
+    sh.setAttribute('aria-hidden', 'true'); sh.inert = true;
     $('sheetBackdrop').classList.add('hidden');
-    sheetMode = null; openId = null;
+    sheetMode = null; openId = null; sheetKey = null;
     // la scheda è già chiusa: il "popstate" che arriva da questo history.back() non deve chiudere
     // un'eventuale scheda aperta subito dopo
     if (!fromHistory && history.state && history.state.sheet) { ignoreNextPop = true; history.back(); }
     render();
+    // il cursore torna da dove si era aperta la scheda (l'elenco viene ridisegnato: si cerca la riga della pompa)
+    if (focusWasInside) {
+        const back = sheetOpener && document.contains(sheetOpener) && sheetOpener !== document.body ? sheetOpener
+            : closedId && document.querySelector(`#list [data-id="${CSS.escape(closedId)}"] button`);
+        if (back) back.focus({ preventScroll: true });
+    }
+    sheetOpener = null;
 };
 // il tasto "indietro" del telefono chiude la scheda invece di uscire dal sito
 let ignoreNextPop = false;
@@ -308,7 +339,7 @@ function renderStationSheet() {
         <div class="px-5 pt-2 pb-safe">
             <div class="flex items-start gap-3">
                 <div class="flex-1 min-w-0">
-                    <h2 id="sheetTitle" class="text-[20px] font-extrabold leading-tight">${esc(st.name)}</h2>
+                    <h2 id="sheetTitle" tabindex="-1" class="outline-none text-[20px] font-extrabold leading-tight">${esc(st.name)}</h2>
                     <p class="text-[14px] text-slate-500 mt-0.5">${esc(st.address)} · ${esc(st.zone)}${me ? ' · ' + fmtKm(km(me, st)) : ''}</p>
                 </div>
                 ${closeBtn}
@@ -328,7 +359,7 @@ function renderStationSheet() {
                 </div>
                 ${stale ? '<p class="mt-3 text-[13px] font-semibold text-amber-800"><i class="fa-solid fa-clock-rotate-left mr-1"></i>Notizia di più di 3 ore fa: se sei lì, confermala o correggila.</p>' : ''}
                 ${q ? `<p class="mt-3 text-[14px] font-semibold ${st.queueLevel === 'Scorrevole' ? 'text-emerald-800' : 'text-amber-800'}"><i class="fa-solid fa-car-side mr-1.5"></i>${esc(q)}${st.queueTs ? ` <span class="font-normal text-slate-500">· ${ago(st.queueTs)}</span>` : ''}</p>` : ''}
-                ${fuels.length ? `<p class="mt-2 flex flex-wrap gap-1.5">${fuels.map(([k, l]) => `<span class="px-2 py-0.5 rounded-lg text-[13px] font-semibold ${st.fuels[k] ? 'bg-white text-emerald-800' : 'bg-white/60 text-slate-400 line-through'}">${l}</span>`).join('')}</p>` : ''}
+                ${fuels.length ? `<p class="mt-2 flex flex-wrap gap-1.5">${fuels.map(([k, l]) => `<span class="px-2 py-0.5 rounded-lg text-[13px] font-semibold ${st.fuels[k] ? 'bg-white text-emerald-800' : 'bg-white/60 text-slate-500 line-through'}">${l}</span>`).join('')}</p>` : ''}
                 ${note ? `<p class="mt-2 text-[14px] text-slate-700 italic">"${esc(note)}"</p>` : ''}
                 ${reports ? `<p class="mt-3 pt-3 border-t border-black/5 text-[12px] text-slate-500">Segnalazioni totali: <strong>${reports}</strong></p>` : ''}
             </div>
@@ -357,7 +388,7 @@ function renderStationSheet() {
                 </div>` : ''}
                 ${mine ? '<button onclick="vote(null)" class="mt-3 text-[13px] font-semibold text-red-700 underline">Togli il mio voto</button>' : ''}
             </div>
-        </div>`);
+        </div>`, `station:${st.id}`);
 }
 
 // bozza di carburanti e coda per chi non ha ancora votato (si azzera cambiando pompa)
@@ -444,7 +475,7 @@ window.openHowItWorks = function () {
     pushSheetState();
     showSheet(`
         <div class="px-5 pt-2 pb-safe">
-            <div class="flex items-start gap-3"><h2 id="sheetTitle" class="flex-1 text-[20px] font-extrabold">Come funziona</h2>${closeBtn}</div>
+            <div class="flex items-start gap-3"><h2 id="sheetTitle" tabindex="-1" class="outline-none flex-1 text-[20px] font-extrabold">Come funziona</h2>${closeBtn}</div>
             <div class="mt-3 space-y-3 text-[15px] text-slate-700">
                 <p><strong>Lo stato lo segnalano i cittadini.</strong> Chi passa davanti a una pompa la vota: Aperta, Limitata o Esaurita. Non serve registrarsi.</p>
                 <p><strong>Limitata</strong> vuol dire che il carburante c’è ma con limiti: solo alcuni tipi, poca scorta, un tetto di spesa. <strong>Le code si segnalano a parte</strong>: una pompa aperta con coda ha la clessidra verde.</p>
@@ -454,7 +485,7 @@ window.openHowItWorks = function () {
                 <p><strong>Code e carburanti</strong> sono quelli indicati nell’ultima segnalazione.</p>
                 <p class="text-[13px] text-slate-500">Il sito non chiede nomi né account. Per riconoscere il tuo voto usa un codice casuale salvato solo sul tuo telefono.</p>
             </div>
-        </div>`);
+        </div>`, 'help');
 };
 
 // ---------- nuovo distributore ----------
@@ -478,7 +509,7 @@ function addStep1Ready() { const a = addState; return a.street && findComune(a.c
 function renderAddSheet() {
     const a = addState;
     const near = a.pos ? stations.filter(s => km(s, a.pos) < 0.2) : [];
-    const head = `<div class="flex items-start gap-3"><div class="flex-1"><h2 id="sheetTitle" class="text-[20px] font-extrabold">Segnala una pompa che manca</h2><p class="text-[13px] text-slate-500">Passo ${a.step} di 2 · ${a.step === 1 ? 'dove si trova' : 'conferma e stato'}</p></div>${closeBtn}</div>`;
+    const head = `<div class="flex items-start gap-3"><div class="flex-1"><h2 id="sheetTitle" tabindex="-1" class="outline-none text-[20px] font-extrabold">Segnala una pompa che manca</h2><p class="text-[13px] text-slate-500">Passo ${a.step} di 2 · ${a.step === 1 ? 'dove si trova' : 'conferma e stato'}</p></div>${closeBtn}</div>`;
     if (a.step === 1) {
         showSheet(`<div class="px-5 pt-2 pb-safe">${head}
             <button onclick="addUseMyPosition()" id="addGpsBtn" class="mt-4 w-full h-12 rounded-xl border-2 border-blue-600 text-blue-700 text-[15px] font-bold"><i class="fa-solid fa-location-crosshairs mr-1.5"></i>Sono alla pompa: usa la mia posizione</button>
@@ -493,7 +524,7 @@ function renderAddSheet() {
                         <input id="addStreet" autocomplete="off" value="${esc(a.street ? a.street.name : a.streetInput)}" oninput="addStreetInput(this.value)" placeholder="Inizia a scrivere, poi scegli dall'elenco" class="${fieldCls} ${a.street ? 'border-emerald-500' : ''}"></label>
                     ${a.street ? `<p class="text-[12px] text-emerald-700 mt-1"><i class="fa-solid fa-check mr-1"></i>Via trovata a ${esc(a.comune)}${a.fromGps ? ' (dalla tua posizione)' : ''}</p>` : '<p class="text-[12px] text-slate-500 mt-1">La via deve esistere: sceglila tra i suggerimenti.</p>'}
                     <ul id="addSuggestions" class="${a.suggestions.length && !a.street ? '' : 'hidden'} absolute z-10 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-56 overflow-y-auto">
-                        ${a.suggestions.map((sg, i) => `<li><button type="button" onclick="addPickStreet(${i})" class="w-full text-left px-3 py-2.5 text-[15px] hover:bg-slate-50 border-b border-slate-100">${esc(sg.name)}${sg.suburb ? ` <span class="text-slate-400 text-[13px]">· ${esc(sg.suburb)}</span>` : ''}</button></li>`).join('')}
+                        ${a.suggestions.map((sg, i) => `<li><button type="button" onclick="addPickStreet(${i})" class="w-full text-left px-3 py-2.5 text-[15px] hover:bg-slate-50 border-b border-slate-100">${esc(sg.name)}${sg.suburb ? ` <span class="text-slate-500 text-[13px]">· ${esc(sg.suburb)}</span>` : ''}</button></li>`).join('')}
                     </ul>
                 </div>
                 <label class="block"><span class="text-[14px] font-bold">Numero civico</span> <span class="text-[13px] text-slate-500">(se lo sai)</span>
@@ -506,7 +537,7 @@ function renderAddSheet() {
                         ${BRANDS.map(b => `<option value="${b}" ${a.brand === b ? 'selected' : ''}>${b === 'Pompa Bianca' ? 'Altro / pompa bianca' : b}</option>`).join('')}
                     </select></label>
                 <button id="addNextBtn" onclick="addGoStep2()" ${addStep1Ready() ? '' : 'disabled'} class="w-full h-12 rounded-xl bg-slate-900 text-white text-[15px] font-bold disabled:opacity-40">Continua</button>
-            </div></div>`);
+            </div></div>`, 'add:1');
         return;
     }
     showSheet(`<div class="px-5 pt-2 pb-safe">${head}
@@ -528,7 +559,7 @@ function renderAddSheet() {
             <button id="addSaveBtn" onclick="addSave()" ${a.status === undefined || (near.length && !a.dupConfirmed) ? 'disabled' : ''} class="flex-1 h-12 rounded-xl bg-amber-400 text-slate-900 text-[15px] font-extrabold disabled:opacity-40">Aggiungi alla mappa</button>
         </div>
         ${a.status === undefined ? '<p class="text-[12px] text-slate-500 mt-1.5 text-center">Scegli com’è adesso (anche “Non so”).</p>' : ''}
-    </div>`);
+    </div>`, 'add:2');
     setTimeout(() => {
         // se nel frattempo la scheda è stata ridisegnata, la mappa è già sul riquadro nuovo
         const el = $('addMap');
@@ -583,7 +614,7 @@ window.addStreetInput = function (v) {
         const ul = $('addSuggestions');
         if (!ul) return;
         ul.innerHTML = a.suggestions.length
-            ? a.suggestions.map((sg, i) => `<li><button type="button" onclick="addPickStreet(${i})" class="w-full text-left px-3 py-2.5 text-[15px] hover:bg-slate-50 border-b border-slate-100">${esc(sg.name)}${sg.suburb ? ` <span class="text-slate-400 text-[13px]">· ${esc(sg.suburb)}</span>` : ''}</button></li>`).join('')
+            ? a.suggestions.map((sg, i) => `<li><button type="button" onclick="addPickStreet(${i})" class="w-full text-left px-3 py-2.5 text-[15px] hover:bg-slate-50 border-b border-slate-100">${esc(sg.name)}${sg.suburb ? ` <span class="text-slate-500 text-[13px]">· ${esc(sg.suburb)}</span>` : ''}</button></li>`).join('')
             : `<li class="px-3 py-2.5 text-[14px] text-slate-500">Nessuna via così a ${esc(a.comune)}. Controlla il nome o il comune.</li>`;
         ul.classList.remove('hidden');
     }, 600);

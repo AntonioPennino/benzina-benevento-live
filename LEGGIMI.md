@@ -5,14 +5,15 @@ La vecchia versione su Vercel (https://benzina-benevento-live.vercel.app) non è
 Monitoraggio civico dei distributori di Benevento e del Sannio: i cittadini votano lo stato di ogni pompa (Aperta / Limitata / Esaurita) e, a parte, la coda.
 
 ## Com'è fatto
-HTML statico + JavaScript nel browser. L'unico passaggio di "build" è lo stile: Tailwind genera `public/styles.css` (`npm run build:css`), che va ricreato dopo aver cambiato classi in `index.html` o nei file `.js` di `public/`; GitHub Actions lo rigenera comunque a ogni pubblicazione.
+HTML statico + JavaScript nel browser. L'unico passaggio di "build" è lo stile: `npm run build:css` crea le icone (`scripts/build-icons.mjs`) e poi Tailwind genera `public/styles.css`. Va rifatto dopo aver cambiato classi o icone in `index.html` o nei file `.js` di `public/`; GitHub Actions lo rigenera comunque a ogni pubblicazione.
 
 | File | Cosa contiene |
 |---|---|
 | `public/` | Tutto ciò che viene pubblicato: è la cartella servita da Cloudflare Pages. |
-| `public/index.html` | Struttura della pagina (font e icone Font Awesome si caricano senza bloccare la prima schermata). |
+| `public/index.html` | Struttura della pagina (il font Inter si carica senza bloccare la prima schermata). |
 | `public/regole.js` | Regola dei voti: da qui si calcola lo stato di ogni pompa. |
 | `public/comuni.json` | I 78 comuni della provincia di Benevento con il loro centro (da OpenStreetMap): tendina del modulo e controlli del server. |
+| `scripts/build-icons.mjs` | Icone Font Awesome: tiene solo quelle usate nel codice (font di pochi kB in `public/vendor/fa/`, regole in `src/icons.css`). Un'icona nuova basta scriverla nel codice e rifare `npm run build:css`. |
 | `public/styles.css` | Stile generato da Tailwind con le sole classi usate (`tailwind.config.js`, `src/tailwind.css`). Non modificarlo a mano. |
 | `public/app.js` | Logica della pagina: dati dalle API, mappa, elenco, scheda della pompa, voti, nuova pompa. |
 | `public/vendor/leaflet/` | Libreria della mappa (Leaflet 1.9.4) ospitata sul sito, per non dipendere da unpkg.com. |

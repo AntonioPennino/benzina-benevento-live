@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "npm run build:css && wrangler pages dev",
-    "build:css": "tailwindcss -c tailwind.config.js -i src/tailwind.css -o public/styles.css --minify",
+    "build:css": "node scripts/build-icons.mjs && tailwindcss -c tailwind.config.js -i src/tailwind.css -o public/styles.css --minify",
     "watch:css": "tailwindcss -c tailwind.config.js -i src/tailwind.css -o public/styles.css --watch",
     "deploy": "node scripts/deploy.mjs",
     "test": "node tests/regola-voti.test.js",
@@ -12,6 +12,8 @@
     "db:local": "wrangler d1 migrations apply benzina-db --local"
   },
   "devDependencies": {
+    "@fortawesome/fontawesome-free": "^6.5.1",
+    "fontawesome-subset": "^4.6.0",
     "tailwindcss": "^3.4.17",
     "wrangler": "^4.152.0"
   }
