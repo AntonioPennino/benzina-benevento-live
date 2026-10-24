@@ -202,7 +202,9 @@ function renderMarkers() {
     const shiftOf = (st) => {
         const pt = map.latLngToLayerPoint([st.lat, st.lng]);
         // la prima posizione libera rispetto ai segnaposto già sistemati (prima il punto esatto)
-        const free = SHIFTS.find(([dx, dy]) => !placedPx.some(p => p.distanceTo(L.point(pt.x + dx, pt.y + dy)) < 35)) || [0, 0];
+        const gap = ([dx, dy]) => Math.min(Infinity, ...placedPx.map(p => p.distanceTo(L.point(pt.x + dx, pt.y + dy))));
+        // se non c'è nessun posto libero, quello con più spazio intorno
+        const free = SHIFTS.find(sh => gap(sh) >= 35) || SHIFTS.reduce((best, sh) => gap(sh) > gap(best) ? sh : best);
         placedPx.push(L.point(pt.x + free[0], pt.y + free[1]));
         return free;
     };
