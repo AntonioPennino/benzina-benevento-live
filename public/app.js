@@ -97,7 +97,9 @@ async function load() {
         stations = data.stations.filter(s => /^bn-(station|custom)-\d+$/.test(s.id)).map(fromApi);
         const first = !loaded;
         loaded = true; loadFailed = false;
-        setLive(true);
+        // senza rete il service worker (sw.js) risponde con gli ultimi dati salvati e dice di quando sono
+        const offlineAt = Number(res.headers.get('X-Offline-Cached-At'));
+        setLive(offlineAt || true);
         render();
         if (first) { frameMap(); openFromUrl(); }
         if (sheetMode === 'station' && openId) renderStationSheet();
@@ -108,10 +110,13 @@ async function load() {
         render();
     } finally { loading = false; }
 }
+// ok: true = dati freschi, un numero = senza rete, dati salvati a quell'ora, false = niente dati
 function setLive(ok) {
-    $('liveStatus').innerHTML = ok
+    $('liveStatus').innerHTML = ok === true
         ? '<span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1 align-middle animate-pulse"></span>Aggiornato in tempo reale dai cittadini'
-        : '<span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 mr-1 align-middle"></span>Connessione assente: riprovo…';
+        : ok
+            ? `<span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 mr-1 align-middle"></span>Senza rete: dati delle ${clock(ok)}`
+            : '<span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 mr-1 align-middle"></span>Connessione assente: riprovo…';
 }
 
 // ---------- elenco ----------
@@ -487,6 +492,7 @@ window.openHowItWorks = function () {
                 <p><strong>Code e carburanti</strong> sono quelli indicati nell’ultima segnalazione.</p>
                 <p class="text-[13px] text-slate-500">Il sito non chiede nomi né account. Per riconoscere il tuo voto usa un codice casuale salvato solo sul tuo telefono.</p>
             </div>
+            ${installHelp()}
         </div>`, 'help');
 };
 
@@ -720,6 +726,32 @@ const comuneKey = (t) => (t || '').toLowerCase().normalize('NFD').replace(/[\u03
 const findComune = (name) => COMUNI.find(c => comuneKey(c.nome) === comuneKey(name));
 async function loadComuni() { try { COMUNI = await (await fetch('/comuni.json')).json(); } catch (e) { console.warn('Elenco comuni non disponibile', e); } }
 
+// ---------- schermata Home ----------
+// Chrome/Android: il browser offre l'installazione e la teniamo per il pulsante; iPhone: si fa dal menu Condividi
+let installPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installPrompt = e; });
+window.addEventListener('appinstalled', () => { installPrompt = null; toast('Fatto: la trovi nella schermata Home.'); });
+const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+function installHelp() {
+    if (isStandalone()) return '';
+    const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const how = installPrompt
+        ? '<button onclick="installApp()" class="mt-2 w-full h-12 rounded-xl bg-slate-900 text-white text-[15px] font-bold"><i class="fa-solid fa-plus mr-1.5"></i>Aggiungi alla schermata Home</button>'
+        : ios
+            ? '<p class="mt-1">In Safari tocca <strong>Condividi</strong> (il quadrato con la freccia in su) e poi <strong>Aggiungi alla schermata Home</strong>.</p>'
+            : '<p class="mt-1">Dal menu del browser (i tre puntini) scegli <strong>Aggiungi a schermata Home</strong> o <strong>Installa app</strong>.</p>';
+    return `<div class="mt-5 rounded-2xl bg-slate-50 border border-slate-200 p-4 text-[15px] text-slate-700">
+            <p class="font-bold text-slate-900"><i class="fa-solid fa-mobile-screen-button mr-1.5"></i>Mettila nella schermata Home</p>
+            <p class="mt-1">Si apre come un'app, e senza rete mostra gli ultimi dati visti.</p>${how}</div>`;
+}
+window.installApp = async function () {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    await installPrompt.userChoice.catch(() => {});
+    installPrompt = null;
+    if (sheetMode === 'help') openHowItWorks();
+};
+
 // ---------- avvio ----------
 (async function start() {
     try { initMap(); } catch (e) { console.error('Mappa non avviata', e); }
@@ -730,4 +762,5 @@ async function loadComuni() { try { COMUNI = await (await fetch('/comuni.json'))
     document.addEventListener('visibilitychange', () => { clearInterval(timer); if (!document.hidden) { load(); timer = setInterval(load, POLL_MS); } });
     loadNews();
     loadComuni();
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch((e) => console.warn('Service worker non attivo', e));
 })();

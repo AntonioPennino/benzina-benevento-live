@@ -1,5 +1,5 @@
 /* Generato da scripts/build-icons.mjs: non modificare a mano. Font Awesome Free 6.5.1 (font: SIL OFL 1.1, icone: CC BY 4.0) */
-@font-face{font-family:"Font Awesome 6 Free";font-style:normal;font-weight:900;font-display:block;src:url(/vendor/fa/fa-solid-900.c247c795.woff2) format("woff2")}
+@font-face{font-family:"Font Awesome 6 Free";font-style:normal;font-weight:900;font-display:block;src:url(/vendor/fa/fa-solid-900.483ee445.woff2) format("woff2")}
 @font-face{font-family:"Font Awesome 6 Free";font-style:normal;font-weight:400;font-display:block;src:url(/vendor/fa/fa-regular-400.5383e367.woff2) format("woff2")}
 .fa-solid,.fa-regular{font-family:"Font Awesome 6 Free";-moz-osx-font-smoothing:grayscale;-webkit-font-smoothing:antialiased;display:inline-block;font-style:normal;font-variant:normal;line-height:1;text-rendering:auto}
 .fa-solid{font-weight:900}.fa-regular{font-weight:400}
@@ -17,6 +17,7 @@
 .fa-hourglass-half:before{content:"\f252"}
 .fa-location-crosshairs:before{content:"\f601"}
 .fa-magnifying-glass:before{content:"\f002"}
+.fa-mobile-screen-button:before{content:"\f3cd"}
 .fa-newspaper:before{content:"\f1ea"}
 .fa-plug-circle-exclamation:before{content:"\e55d"}
 .fa-plus:before{content:"\2b"}

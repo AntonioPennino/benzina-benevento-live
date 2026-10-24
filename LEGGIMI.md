@@ -10,13 +10,15 @@ HTML statico + JavaScript nel browser. L'unico passaggio di "build" è lo stile:
 | File | Cosa contiene |
 |---|---|
 | `public/` | Tutto ciò che viene pubblicato: è la cartella servita da Cloudflare Pages. |
-| `public/index.html` | Struttura della pagina (il font Inter si carica senza bloccare la prima schermata). |
+| `public/index.html` | Struttura della pagina, anteprima per i link condivisi (`og:` → `public/og.png`, 1200×630). |
+| `public/sw.js`, `public/manifest.webmanifest` | "Aggiungi alla schermata Home": il sito si apre come un'app e senza rete mostra gli ultimi dati visti (pagina e `/api/stations` sempre prima dalla rete; voti e mappa non passano dal service worker). |
 | `public/regole.js` | Regola dei voti: da qui si calcola lo stato di ogni pompa. |
 | `public/comuni.json` | I 78 comuni della provincia di Benevento con il loro centro (da OpenStreetMap): tendina del modulo e controlli del server. |
 | `scripts/build-icons.mjs` | Icone Font Awesome: tiene solo quelle usate nel codice (font di pochi kB in `public/vendor/fa/`, regole in `src/icons.css`). Un'icona nuova basta scriverla nel codice e rifare `npm run build:css`. |
 | `public/styles.css` | Stile generato da Tailwind con le sole classi usate (`tailwind.config.js`, `src/tailwind.css`). Non modificarlo a mano. |
 | `public/app.js` | Logica della pagina: dati dalle API, mappa, elenco, scheda della pompa, voti, nuova pompa. |
 | `public/vendor/leaflet/` | Libreria della mappa (Leaflet 1.9.4) ospitata sul sito, per non dipendere da unpkg.com. |
+| `public/vendor/inter-5.3.0/`, `src/fonts.css` | Font Inter ospitato sul sito: **niente Google Fonts** né altri CDN, che riceverebbero l'IP di ogni visitatore (GDPR). Gli unici servizi esterni chiamati a ogni visita sono le immagini della mappa di OpenStreetMap; Nominatim e Photon solo quando si aggiunge una pompa. |
 | `public/_headers`, `public/_redirects` | Header HTTP di sicurezza; `/nuova/` (indirizzo dell'anteprima della nuova interfaccia) porta alla home. |
 | `functions/api/stations.ts`, `functions/api/vote.ts` | API dei distributori e dei voti (vedi "Database"). |
 | `lib/benzina.ts` | Codice comune alle API: controlli sui dati, limiti contro gli abusi, letture dal database. |

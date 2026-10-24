@@ -6,6 +6,23 @@
     <title>Benzina Benevento Live - Monitoraggio Carburanti</title>
     <meta name="description" content="Dove trovare benzina a Benevento e nel Sannio: lo stato dei distributori segnalato in tempo reale dai cittadini.">
     <link rel="canonical" href="https://benzinabn.it/">
+    <!-- anteprima quando il link si condivide (WhatsApp, Telegram, Facebook…) -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://benzinabn.it/">
+    <meta property="og:site_name" content="Benzina Benevento Live">
+    <meta property="og:title" content="Benzina Benevento Live: dove c'è benzina adesso">
+    <meta property="og:description" content="Lo stato dei distributori di Benevento e del Sannio, segnalato in tempo reale dai cittadini. Senza registrazione.">
+    <meta property="og:image" content="https://benzinabn.it/og.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Benzina Benevento Live: dove trovare benzina a Benevento e nel Sannio">
+    <meta property="og:locale" content="it_IT">
+    <meta name="twitter:card" content="summary_large_image">
+    <!-- "Aggiungi alla schermata Home": si apre come un'app -->
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Benzina BN">
     <meta name="theme-color" content="#0F172A">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
@@ -13,11 +30,9 @@
     <!-- I distributori si chiedono subito, mentre il resto della pagina si carica (li usa app.js) -->
     <script>window.__stationsRequest = fetch('/api/stations', { cache: 'no-store' }).catch(function () { return null; });</script>
     <link rel="stylesheet" href="/styles.css?v=dev">
-    <link rel="preload" as="font" type="font/woff2" href="/vendor/fa/fa-solid-900.c247c795.woff2" crossorigin>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" as="font" type="font/woff2" href="/vendor/inter-5.3.0/inter-latin-wght.woff2" crossorigin>
+    <link rel="preload" as="font" type="font/woff2" href="/vendor/fa/fa-solid-900.483ee445.woff2" crossorigin>
     <link rel="preconnect" href="https://tile.openstreetmap.org" crossorigin>
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400..800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
     <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
     <script src="/vendor/leaflet/leaflet.js" defer></script>
     <style>
