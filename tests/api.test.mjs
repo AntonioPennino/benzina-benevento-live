@@ -93,11 +93,34 @@ test('distributori non validi vengono rifiutati, e massimo 5 al giorno a persona
 })
 
 test('troppi voti dalla stessa connessione vengono fermati', async () => {
-  const ip = '10.9.9.9'
+  // su pompe diverse (sulla stessa pompa scatta prima il limite qui sotto)
+  const ip = '10.9.' + Math.floor(Math.random() * 250) + '.9'
+  const ids = (await getStations()).map((s) => s.id)
   let last
   for (let i = 0; i < 305; i++) {
-    last = await post('/api/vote', { secret: newSecret(), stationId: 'bn-station-5', vote: vote('limited') }, ip)
+    last = await post('/api/vote', { secret: newSecret(), stationId: ids[i % ids.length], vote: vote('limited') }, ip)
     if (last.status === 429) break
   }
   assert.equal(last.status, 429)
+  assert.match(last.data.error, /questa connessione/)
+})
+
+test("sulla stessa pompa, dalla stessa connessione, al massimo 10 dispositivi in un'ora", async () => {
+  const ip = '10.8.' + Math.floor(Math.random() * 250) + '.8'
+  const secrets = Array.from({ length: 10 }, newSecret)
+  for (const secret of secrets) assert.equal((await post('/api/vote', { secret, stationId: 'bn-station-6', vote: vote('closed') }, ip)).status, 200)
+  const blocked = await post('/api/vote', { secret: newSecret(), stationId: 'bn-station-6', vote: vote('closed') }, ip)
+  assert.equal(blocked.status, 429)
+  assert.match(blocked.data.error, /questa pompa/)
+  // chi ha già votato può ancora cambiare il proprio voto
+  assert.equal((await post('/api/vote', { secret: secrets[0], stationId: 'bn-station-6', vote: vote('available') }, ip)).status, 200)
+  for (const secret of secrets) await post('/api/vote', { secret, stationId: 'bn-station-6', vote: null }, ip)
+})
+
+test('pompe nuove: al massimo 10 al giorno dalla stessa connessione', async () => {
+  const ip = '10.7.' + Math.floor(Math.random() * 250) + '.7'
+  let last
+  for (let i = 0; i < 11; i++) last = await post('/api/stations', { secret: newSecret(), station: newStation() }, ip)
+  assert.equal(last.status, 429)
+  assert.match(last.data.error, /connessione/)
 })

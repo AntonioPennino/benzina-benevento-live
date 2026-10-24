@@ -20,7 +20,7 @@ export const onRequestPost = async ({ request, env, waitUntil }: Ctx): Promise<R
     } else {
       const vote = parseVote(body.vote)
       const ip = await ipHash(env, request)
-      await checkIpRate(env, ip, now)
+      await checkIpRate(env, ip, now, stationId, voter)
       await upsertVoteStmt(env, stationId, voter, vote, now, ip).run()
     }
     await purgeStationsCache(request)

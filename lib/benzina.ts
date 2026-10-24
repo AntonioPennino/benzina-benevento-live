@@ -35,7 +35,11 @@ export const BRANDS = ['Eni', 'Q8', 'Esso', 'IP', 'Tamoil', 'Energas', 'Pompa Bi
 export const VOTES_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000
 // limiti contro gli abusi
 export const MAX_VOTES_PER_IP_10MIN = 300 // alto: sulle reti mobili molte persone escono dallo stesso IP
+// un voto per pompa per dispositivo, ma un dispositivo "nuovo" si crea in un attimo: dalla stessa connessione
+// al massimo tanti voti diversi sulla stessa pompa in un'ora (una coda di auto sulla stessa rete mobile ci sta)
+export const MAX_VOTERS_PER_IP_STATION_1H = 10
 export const MAX_NEW_STATIONS_PER_DAY = 5
+export const MAX_NEW_STATIONS_PER_IP_DAY = 10
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) { super(message) }
@@ -85,7 +89,7 @@ export async function ipHash(env: Env, request: Request): Promise<string> {
 // al massimo ogni 10 minuti per server. Vedi anche public/privacy.html (va aggiornata se cambia qualcosa qui).
 export const IP_HASH_KEEP_MS = 60 * 60 * 1000          // impronta dell'IP: il limite ai voti guarda gli ultimi 10 minuti
 export const VOTES_KEEP_MS = 30 * 24 * 60 * 60 * 1000  // voti: la pagina usa solo quelli degli ultimi 7 giorni
-export const CREATOR_KEEP_MS = 24 * 60 * 60 * 1000     // chi ha aggiunto una pompa: serve solo al limite di 5 al giorno
+export const CREATOR_KEEP_MS = 24 * 60 * 60 * 1000     // chi ha aggiunto una pompa (dispositivo e connessione): serve solo ai limiti giornalieri
 let lastCleanup = 0
 export async function cleanupOldData(env: Env, now: number) {
   if (now - lastCleanup < 10 * 60 * 1000) return
@@ -94,7 +98,7 @@ export async function cleanupOldData(env: Env, now: number) {
     await env.DB.batch([
       env.DB.prepare('UPDATE votes SET ip_hash = NULL WHERE ip_hash IS NOT NULL AND ts < ?').bind(now - IP_HASH_KEEP_MS),
       env.DB.prepare('DELETE FROM votes WHERE ts < ?').bind(now - VOTES_KEEP_MS),
-      env.DB.prepare('UPDATE stations SET created_by = NULL WHERE created_by IS NOT NULL AND created_at < ?').bind(now - CREATOR_KEEP_MS),
+      env.DB.prepare('UPDATE stations SET created_by = NULL, created_ip = NULL WHERE (created_by IS NOT NULL OR created_ip IS NOT NULL) AND created_at < ?').bind(now - CREATOR_KEEP_MS),
       env.DB.prepare("UPDATE votes SET note = '' WHERE note != ''"),
       env.DB.prepare('DELETE FROM ip_salt WHERE day < ?').bind(new Date(now).toISOString().slice(0, 10)),
     ])
@@ -164,9 +168,13 @@ export function parseNewStation(s: any) {
   }
 }
 
-export async function checkIpRate(env: Env, ip: string, now: number) {
-  const row = await env.DB.prepare('SELECT COUNT(*) AS n FROM votes WHERE ip_hash = ? AND ts > ?').bind(ip, now - 10 * 60 * 1000).first<{ n: number }>()
-  if ((row?.n || 0) >= MAX_VOTES_PER_IP_10MIN) throw new ApiError(429, 'Troppi voti da questa connessione. Riprova tra qualche minuto.')
+// stationId/voter: chi cambia il proprio voto non conta come voto in più
+export async function checkIpRate(env: Env, ip: string, now: number, stationId: string, voter: string) {
+  const row = await env.DB.prepare(
+    'SELECT SUM(ts > ?) AS recent, SUM(station_id = ? AND voter != ?) AS here FROM votes WHERE ip_hash = ? AND ts > ?'
+  ).bind(now - 10 * 60 * 1000, stationId, voter, ip, now - 60 * 60 * 1000).first<{ recent: number | null; here: number | null }>()
+  if ((row?.recent || 0) >= MAX_VOTES_PER_IP_10MIN) throw new ApiError(429, 'Troppi voti da questa connessione. Riprova tra qualche minuto.')
+  if ((row?.here || 0) >= MAX_VOTERS_PER_IP_STATION_1H) throw new ApiError(429, 'Troppi voti su questa pompa dalla stessa connessione. Riprova più tardi.')
 }
 
 export function upsertVoteStmt(env: Env, stationId: string, voter: string, v: Omit<Vote, 'ts'>, ts: number, ip: string) {

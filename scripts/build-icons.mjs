@@ -13,7 +13,7 @@ const meta = require('@fortawesome/fontawesome-free/metadata/icon-families.json'
 
 const root = new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')
 const pub = join(root, 'public')
-const sources = readdirSync(pub).filter(f => /.(html|js)$/.test(f)).map(f => readFileSync(join(pub, f), 'utf8')).join('\n')
+const sources = readdirSync(pub).filter(f => /\.(html|js)$/.test(f)).map(f => readFileSync(join(pub, f), 'utf8')).join('\n')
 
 const freeStyles = (name) => (meta[name]?.familyStylesByLicense?.free || []).filter(s => s.family === 'classic').map(s => s.style)
 const names = [...new Set([...sources.matchAll(/\bfa-([a-z0-9-]+)/g)].map(m => m[1]))].filter(n => freeStyles(n).length).sort()
