@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Privacy - Benzina Benevento Live</title>
+    <meta name="description" content="Quali dati usa Benzina Benevento Live: pochissimi, senza account, senza cookie e senza statistiche.">
+    <link rel="canonical" href="https://benzinabn.it/privacy">
+    <meta name="theme-color" content="#0F172A">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+    <link rel="stylesheet" href="/styles.css?v=dev">
+    <style>body { font-family: 'Inter', system-ui, sans-serif; }</style>
+</head>
+<!-- Da aggiornare se cambia cosa si salva: lib/benzina.ts (cleanupOldData, ipHash), public/sw.js, servizi esterni in public/app.js -->
+<body class="bg-slate-100 text-slate-900 antialiased">
+    <header class="bg-slate-900 text-white">
+        <div class="max-w-3xl mx-auto px-4 h-14 flex items-center gap-3">
+            <a href="/" class="flex items-center gap-3 min-w-0">
+                <span class="w-9 h-9 rounded-xl bg-amber-400 text-slate-900 flex items-center justify-center shrink-0"><i class="fa-solid fa-gas-pump"></i></span>
+                <span class="font-extrabold text-[15px] truncate">Benzina Benevento <span class="text-amber-400">Live</span></span>
+            </a>
+            <a href="/" class="ml-auto inline-flex items-center gap-1.5 px-3 h-10 rounded-xl text-[14px] font-semibold text-slate-200 hover:bg-slate-800"><i class="fa-solid fa-arrow-left"></i> Torna alla mappa</a>
+        </div>
+    </header>
+
+    <main class="max-w-3xl mx-auto px-4 py-6">
+        <article class="bg-white rounded-2xl p-5 sm:p-8 space-y-6 text-[15px] leading-relaxed text-slate-700">
+            <div>
+                <h1 class="text-[26px] font-extrabold text-slate-900 leading-tight">Privacy</h1>
+                <p class="mt-1 text-[13px] text-slate-500">Aggiornata il 24 ottobre 2026</p>
+            </div>
+
+            <p class="text-[16px]"><strong class="text-slate-900">In breve:</strong> per usare il sito non servono account, nomi o email. Non usiamo cookie, statistiche, pubblicità o strumenti che ti seguono da un sito all’altro. Teniamo solo il minimo che serve a far funzionare i voti, e lo cancelliamo da soli dopo poco tempo.</p>
+
+            <section>
+                <h2 class="text-[18px] font-extrabold text-slate-900">Chi gestisce il sito</h2>
+                <p class="mt-1">Benzina Benevento Live è un progetto volontario della comunità, senza scopo di lucro. Il codice è pubblico e chiunque può controllare cosa fa: <a class="font-semibold text-blue-700 underline" href="https://github.com/AntonioPennino/benzina-benevento-live" target="_blank" rel="noopener">github.com/AntonioPennino/benzina-benevento-live</a>.</p>
+                <p class="mt-2">Per domande o richieste sui dati scrivici aprendo una segnalazione su <a class="font-semibold text-blue-700 underline" href="https://github.com/AntonioPennino/benzina-benevento-live/issues" target="_blank" rel="noopener">GitHub</a>.</p>
+            </section>
+
+            <section>
+                <h2 class="text-[18px] font-extrabold text-slate-900">Cosa resta sul tuo telefono</h2>
+                <ul class="mt-2 space-y-2 list-disc pl-5">
+                    <li><strong>Un codice casuale</strong>, creato dal tuo browser la prima volta che voti. Serve solo a riconoscere il tuo voto, così puoi cambiarlo o toglierlo e nessuno può votare al posto tuo. Non contiene niente di te.</li>
+                    <li><strong>Una copia della pagina e dei dati delle pompe</strong>, per aprire il sito anche quando la rete è debole o assente.</li>
+                </ul>
+                <p class="mt-2">Non sono cookie e non vengono letti da altri siti. Li cancelli quando vuoi cancellando i dati del sito dalle impostazioni del browser.</p>
+            </section>
+
+            <section>
+                <h2 class="text-[18px] font-extrabold text-slate-900">Cosa si salva sul server, e per quanto</h2>
+                <div class="mt-2 overflow-x-auto">
+                    <table class="w-full text-left text-[14px] border-collapse">
+                        <thead><tr class="border-b border-slate-200 text-slate-900"><th class="py-2 pr-3">Dato</th><th class="py-2 pr-3">A cosa serve</th><th class="py-2">Per quanto</th></tr></thead>
+                        <tbody class="align-top">
+                            <tr class="border-b border-slate-100"><td class="py-2 pr-3"><strong>Il tuo voto</strong>: pompa, stato, carburanti, coda, ora, e un’impronta del tuo codice casuale (non il codice)</td><td class="py-2 pr-3">Mostrare a tutti lo stato delle pompe. I voti sono pubblici, ma l’impronta non dice chi sei.</td><td class="py-2">Visibile 7 giorni, cancellato dopo 30</td></tr>
+                            <tr class="border-b border-slate-100"><td class="py-2 pr-3"><strong>Un’impronta del tuo indirizzo IP</strong>, mescolata con un codice segreto che cambia ogni giorno</td><td class="py-2 pr-3">Fermare chi manda centinaia di voti falsi. Non si può risalire all’indirizzo.</td><td class="py-2">1 ora; il codice segreto si cancella il giorno dopo</td></tr>
+                            <tr class="border-b border-slate-100"><td class="py-2 pr-3"><strong>Una pompa che aggiungi</strong>: nome, marchio, via, comune, posizione sulla mappa</td><td class="py-2 pr-3">Metterla sulla mappa per tutti.</td><td class="py-2">Finché la pompa esiste</td></tr>
+                            <tr><td class="py-2 pr-3"><strong>Chi ha aggiunto la pompa</strong> (l’impronta del codice casuale)</td><td class="py-2 pr-3">Limitare a 5 le pompe nuove al giorno per persona.</td><td class="py-2">1 giorno</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="mt-2">La tua posizione non viene mai salvata: “Vicino a me” la usa solo sul tuo telefono per ordinare l’elenco. Le note scritte a mano non si salvano.</p>
+            </section>
+
+            <section>
+                <h2 class="text-[18px] font-extrabold text-slate-900">Servizi di altri</h2>
+                <ul class="mt-2 space-y-2 list-disc pl-5">
+                    <li><strong>Cloudflare</strong> ospita il sito e il database. Come ogni server, vede l’indirizzo IP di chi apre il sito. <a class="text-blue-700 underline" href="https://www.cloudflare.com/it-it/privacypolicy/" target="_blank" rel="noopener">Privacy di Cloudflare</a></li>
+                    <li><strong>OpenStreetMap</strong> fornisce le immagini della mappa: il tuo browser le scarica dai loro server, che vedono il tuo IP. <a class="text-blue-700 underline" href="https://osmfoundation.org/wiki/Privacy_Policy" target="_blank" rel="noopener">Privacy di OpenStreetMap</a></li>
+                    <li><strong>Solo se segnali una pompa nuova</strong>: la via che scrivi va a Photon (Komoot) e a Nominatim (OpenStreetMap) per trovarla sulla mappa; se tocchi “Sono alla pompa”, anche la tua posizione va a Nominatim per trovare la via.</li>
+                    <li><strong>Solo se li tocchi</strong>: “Indicazioni” apre Google Maps e “Condividi” apre l’app che scegli. Da lì valgono le loro regole.</li>
+                </ul>
+                <p class="mt-2">Il font e le icone sono sul nostro sito: non chiediamo niente a Google Fonts o ad altri servizi simili.</p>
+            </section>
+
+            <section>
+                <h2 class="text-[18px] font-extrabold text-slate-900">Perché possiamo usarli</h2>
+                <p class="mt-1">Usiamo questi pochi dati per l’interesse legittimo a far funzionare un servizio di informazione per i cittadini e a proteggerlo dagli abusi (articolo 6, paragrafo 1, lettera f del Regolamento UE 2016/679, “GDPR”). Non li vendiamo, non li cediamo e non li usiamo per altro.</p>
+            </section>
+
+            <section>
+                <h2 class="text-[18px] font-extrabold text-slate-900">I tuoi diritti</h2>
+                <p class="mt-1">Puoi chiedere di vedere, correggere o cancellare i tuoi dati, oppure opporti al loro uso. Il modo più veloce lo hai già:</p>
+                <ul class="mt-2 space-y-2 list-disc pl-5">
+                    <li>nella scheda di una pompa, <strong>“Togli il mio voto”</strong> cancella subito il tuo voto dal server;</li>
+                    <li>cancellando i dati del sito dal browser, il tuo codice casuale sparisce e i voti già dati non sono più collegabili a te.</li>
+                </ul>
+                <p class="mt-2">Siccome non sappiamo chi sei, per altre richieste ci serve sapere di quali voti si tratta: scrivici su GitHub. Se pensi che i tuoi dati siano trattati male puoi rivolgerti al <a class="text-blue-700 underline" href="https://www.garanteprivacy.it" target="_blank" rel="noopener">Garante per la protezione dei dati personali</a>.</p>
+            </section>
+
+            <p class="pt-2 border-t border-slate-100"><a href="/" class="inline-flex items-center gap-1.5 font-bold text-blue-700"><i class="fa-solid fa-arrow-left"></i> Torna alla mappa</a></p>
+        </article>
+    </main>
+</body>
+</html>

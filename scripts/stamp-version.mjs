@@ -5,7 +5,7 @@ import { readFileSync, writeFileSync } from 'node:fs'
 
 const arg = process.argv[2]
 const version = arg === '--restore' ? 'dev' : (arg || Date.now().toString(36))
-for (const [path, required] of [['../public/index.html', true]]) {
+for (const [path, required] of [['../public/index.html', true], ['../public/privacy.html', false]]) {
   const file = new URL(path, import.meta.url)
   let html
   try { html = readFileSync(file, 'utf8') } catch (e) { if (required) throw e; continue }

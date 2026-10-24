@@ -1,5 +1,5 @@
 // Icone: invece di scaricare tutto Font Awesome (~150 kB) il sito tiene solo le icone che usa davvero.
-// Cerca le classi "fa-..." in index.html e nei .js di public/, crea i font ridotti in public/vendor/fa/
+// Cerca le classi "fa-..." nelle pagine .html e nei .js di public/, crea i font ridotti in public/vendor/fa/
 // (il nome contiene un'impronta del contenuto: si possono tenere in cache per sempre) e src/icons.css,
 // che entra in styles.css. Gira da solo con "npm run build:css": un'icona nuova nel codice basta aggiungerla lì.
 import { readFileSync, writeFileSync, readdirSync, mkdirSync, rmSync, mkdtempSync } from 'node:fs'
@@ -13,7 +13,7 @@ const meta = require('@fortawesome/fontawesome-free/metadata/icon-families.json'
 
 const root = new URL('..', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')
 const pub = join(root, 'public')
-const sources = ['index.html', ...readdirSync(pub).filter(f => f.endsWith('.js'))].map(f => readFileSync(join(pub, f), 'utf8')).join('\n')
+const sources = readdirSync(pub).filter(f => /.(html|js)$/.test(f)).map(f => readFileSync(join(pub, f), 'utf8')).join('\n')
 
 const freeStyles = (name) => (meta[name]?.familyStylesByLicense?.free || []).filter(s => s.family === 'classic').map(s => s.style)
 const names = [...new Set([...sources.matchAll(/\bfa-([a-z0-9-]+)/g)].map(m => m[1]))].filter(n => freeStyles(n).length).sort()

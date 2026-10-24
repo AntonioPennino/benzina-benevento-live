@@ -1,9 +1,10 @@
 // Service worker: il sito si apre anche con la rete debole o assente, con gli ultimi dati visti.
-// - pagina: sempre prima dalla rete (così arriva subito la versione nuova); senza rete, l'ultima salvata
+// - pagina principale: sempre prima dalla rete (così arriva subito la versione nuova); senza rete, l'ultima salvata
+//   (le altre pagine, come /privacy, si salvano col loro indirizzo e non prendono il posto della principale)
 // - /api/stations: prima dalla rete; senza rete l'ultima risposta, con X-Offline-Cached-At (l'ora dei dati)
 // - file del sito (stile, script, font, icone): dalla cache e intanto si aggiornano
 // - voti e altre richieste, mappa di OpenStreetMap e altri siti: non passano di qui
-const CACHE = 'benzinabn-v2'
+const CACHE = 'benzinabn-v3'
 
 self.addEventListener('install', () => self.skipWaiting())
 self.addEventListener('activate', (e) => e.waitUntil((async () => {
@@ -28,10 +29,10 @@ self.addEventListener('fetch', (e) => {
     e.respondWith((async () => {
       try {
         const res = await fetch(req)
-        if (res.ok) await put(new Request('/'), res.clone())
+        if (res.ok && !res.redirected) await put(new Request(url.pathname === '/' ? '/' : url.pathname), res.clone())
         return res
       } catch (err) {
-        return (await caches.match('/')) || Response.error()
+        return (await caches.match(url.pathname === '/' ? '/' : url.pathname)) || Response.error()
       }
     })())
     return

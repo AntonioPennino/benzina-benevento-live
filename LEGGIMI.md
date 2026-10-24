@@ -11,6 +11,7 @@ HTML statico + JavaScript nel browser. L'unico passaggio di "build" è lo stile:
 |---|---|
 | `public/` | Tutto ciò che viene pubblicato: è la cartella servita da Cloudflare Pages. |
 | `public/index.html` | Struttura della pagina, anteprima per i link condivisi (`og:` → `public/og.png`, 1200×630). |
+| `public/privacy.html` | Pagina Privacy (indirizzo `/privacy`): cosa si salva e per quanto. Va tenuta allineata al codice. |
 | `public/sw.js`, `public/manifest.webmanifest` | "Aggiungi alla schermata Home": il sito si apre come un'app e senza rete mostra gli ultimi dati visti (pagina e `/api/stations` sempre prima dalla rete; voti e mappa non passano dal service worker). |
 | `public/regole.js` | Regola dei voti: da qui si calcola lo stato di ogni pompa. |
 | `public/comuni.json` | I 78 comuni della provincia di Benevento con il loro centro (da OpenStreetMap): tendina del modulo e controlli del server. |
@@ -36,7 +37,8 @@ HTML statico + JavaScript nel browser. L'unico passaggio di "build" è lo stile:
   - `POST /api/vote`: salva, cambia o toglie (`vote: null`) il proprio voto. L'ora la mette il server.
   - `POST /api/stations`: nuovo distributore con il primo voto (massimo 5 al giorno a persona). Il comune deve essere uno dei 78 di `public/comuni.json` (Benevento se manca), la posizione entro 12 km dal suo centro, nome e via devono contenere lettere.
 - **Chi vota**: ogni dispositivo crea un codice segreto casuale (in `localStorage`); nei dati pubblici compare solo un suo hash (`voter`), quindi nessuno può votare al posto di un altro. Cancellando i dati del browser si diventa un "nuovo" votante, come succedeva con il login anonimo di Firebase.
-- Contro gli abusi: massimo 300 voti ogni 10 minuti dalla stessa connessione (l'IP viene salvato solo come hash che cambia ogni giorno).
+- Contro gli abusi: massimo 300 voti ogni 10 minuti dalla stessa connessione. L'IP si salva solo come impronta mescolata a un codice segreto casuale del giorno (tabella `ip_salt`, `migrations/0002_meno_dati.sql`).
+- **Meno dati possibile** (`cleanupOldData` in `lib/benzina.ts`, gira dopo voti e nuove pompe): impronta dell'IP tolta dopo 1 ora, codice segreto del giorno cancellato il giorno dopo, voti cancellati dopo 30 giorni (la pagina ne usa 7), "chi ha aggiunto la pompa" azzerato dopo 1 giorno, note libere non salvate. Se si cambia qualcosa qui va aggiornata `public/privacy.html`.
 - La pagina chiede l'elenco ogni 20 secondi mentre è aperta e visibile (`POLL_MS`), e si ferma quando la scheda è nascosta.
 - **Limiti del piano gratuito** (si azzerano a mezzanotte UTC): 100.000 richieste al giorno alle API (pagine e file del sito non contano), 5 milioni di letture e 100.000 scritture al giorno sul database. Bastano per decine di migliaia di visite al giorno; oltre, il piano Workers Paid costa 5 $ al mese. In Cloudflare → Workers & Pages → benzina-benevento-live → Impostazioni → Runtime conviene lasciare "Fail open": se le richieste finiscono, il sito resta visibile.
 - **Correggere i dati** (spostare una pompa, rinominarla, nasconderla) si fa con un comando sul database, ad esempio:

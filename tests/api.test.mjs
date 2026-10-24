@@ -32,7 +32,7 @@ test('votare, cambiare e togliere il proprio voto', async () => {
   assert.equal(r.status, 200)
   assert.equal(r.data.voter, me)
   assert.equal(r.data.station.votes[me].status, 'closed')
-  assert.equal(r.data.station.votes[me].note, 'Coni davanti')
+  assert.equal(r.data.station.votes[me].note, '') // le note libere non si salvano
   assert.ok(Math.abs(r.data.station.votes[me].ts - Date.now()) < 60_000, "l'ora la mette il server")
 
   r = await post('/api/vote', { secret, stationId: 'bn-station-3', vote: vote('available') })
@@ -59,7 +59,6 @@ test('voti e richieste non valide vengono rifiutati', async () => {
   assert.equal((await post('/api/vote', { secret: 'abc', stationId: 'bn-station-3', vote: vote('closed') })).status, 400)
   assert.equal((await post('/api/vote', { secret, stationId: 'bn-station-3', vote: { ...vote('closed'), status: 'unverified' } })).status, 400)
   assert.equal((await post('/api/vote', { secret, stationId: 'bn-station-3', vote: { ...vote('closed'), queueLevel: 'boh' } })).status, 400)
-  assert.equal((await post('/api/vote', { secret, stationId: 'bn-station-3', vote: vote('closed', 'x'.repeat(101)) })).status, 400)
   assert.equal((await post('/api/vote', { secret, stationId: 'bn-station-999', vote: vote('closed') })).status, 404)
   assert.equal((await post('/api/vote', { secret, stationId: 'bn-custom-1792679821068', vote: vote('closed') })).status, 404, 'nascosto')
   assert.equal((await post('/api/vote', { secret, stationId: '<script>', vote: vote('closed') })).status, 400)

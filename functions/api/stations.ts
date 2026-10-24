@@ -3,7 +3,7 @@
 import {
   Env, ApiError, json, errorResponse, readJson, voterIdFromSecret, ipHash, parseVote, parseNewStation,
   checkIpRate, upsertVoteStmt, loadStations, loadStation, STATIONS_CACHE_S, stationsCacheKey, purgeStationsCache,
-  MAX_NEW_STATIONS_PER_DAY,
+  MAX_NEW_STATIONS_PER_DAY, cleanupOldData,
 } from '../../lib/benzina'
 
 type Ctx = { request: Request; env: Env; waitUntil: (p: Promise<unknown>) => void }
@@ -27,14 +27,14 @@ export const onRequestGet = async ({ request, env, waitUntil }: Ctx): Promise<Re
   }
 }
 
-export const onRequestPost = async ({ request, env }: Ctx): Promise<Response> => {
+export const onRequestPost = async ({ request, env, waitUntil }: Ctx): Promise<Response> => {
   try {
     const body = await readJson(request)
     const voter = await voterIdFromSecret(body.secret)
     const station = parseNewStation(body.station)
     const vote = body.vote ? parseVote(body.vote) : null
     const now = Date.now()
-    const ip = await ipHash(request)
+    const ip = await ipHash(env, request)
 
     const recent = await env.DB.prepare('SELECT COUNT(*) AS n FROM stations WHERE created_by = ? AND created_at > ?')
       .bind(voter, now - 24 * 60 * 60 * 1000).first<{ n: number }>()
@@ -49,6 +49,7 @@ export const onRequestPost = async ({ request, env }: Ctx): Promise<Response> =>
     if (vote) stmts.push(upsertVoteStmt(env, id, voter, vote, now, ip))
     await env.DB.batch(stmts)
     await purgeStationsCache(request)
+    waitUntil(cleanupOldData(env, now))
 
     return json({ station: await loadStation(env, id, now), voter }, 201)
   } catch (e) {

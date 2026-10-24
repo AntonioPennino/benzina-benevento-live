@@ -66,10 +66,39 @@ export async function voterIdFromSecret(secret: unknown): Promise<string> {
   return (await sha256Hex('voter:' + secret)).slice(0, 24)
 }
 
-// IP mescolato con la data: serve solo a contare le richieste recenti, non a riconoscere le persone
-export async function ipHash(request: Request): Promise<string> {
+// IP mescolato con il codice segreto del giorno (tabella ip_salt): serve solo a contare le richieste
+// degli ultimi minuti, non a riconoscere le persone. Senza il codice, che il giorno dopo si cancella,
+// dall'impronta non si risale all'indirizzo (con la sola data sì: gli IPv4 sono pochi da provare tutti)
+export async function ipHash(env: Env, request: Request): Promise<string> {
   const ip = request.headers.get('CF-Connecting-IP') || 'sconosciuto'
-  return (await sha256Hex(`ip:${ip}:${new Date().toISOString().slice(0, 10)}`)).slice(0, 24)
+  const day = new Date().toISOString().slice(0, 10)
+  let row = await env.DB.prepare('SELECT salt FROM ip_salt WHERE day = ?').bind(day).first<{ salt: string }>()
+  if (!row) {
+    const salt = [...crypto.getRandomValues(new Uint8Array(32))].map((b) => b.toString(16).padStart(2, '0')).join('')
+    await env.DB.prepare('INSERT OR IGNORE INTO ip_salt (day, salt) VALUES (?, ?)').bind(day, salt).run()
+    row = await env.DB.prepare('SELECT salt FROM ip_salt WHERE day = ?').bind(day).first<{ salt: string }>()
+  }
+  return (await sha256Hex(`ip:${ip}:${row!.salt}`)).slice(0, 24)
+}
+
+// Meno dati possibile: si tiene solo quello che serve al sito. Gira dopo un voto o una nuova pompa,
+// al massimo ogni 10 minuti per server. Vedi anche public/privacy.html (va aggiornata se cambia qualcosa qui).
+export const IP_HASH_KEEP_MS = 60 * 60 * 1000          // impronta dell'IP: il limite ai voti guarda gli ultimi 10 minuti
+export const VOTES_KEEP_MS = 30 * 24 * 60 * 60 * 1000  // voti: la pagina usa solo quelli degli ultimi 7 giorni
+export const CREATOR_KEEP_MS = 24 * 60 * 60 * 1000     // chi ha aggiunto una pompa: serve solo al limite di 5 al giorno
+let lastCleanup = 0
+export async function cleanupOldData(env: Env, now: number) {
+  if (now - lastCleanup < 10 * 60 * 1000) return
+  lastCleanup = now
+  try {
+    await env.DB.batch([
+      env.DB.prepare('UPDATE votes SET ip_hash = NULL WHERE ip_hash IS NOT NULL AND ts < ?').bind(now - IP_HASH_KEEP_MS),
+      env.DB.prepare('DELETE FROM votes WHERE ts < ?').bind(now - VOTES_KEEP_MS),
+      env.DB.prepare('UPDATE stations SET created_by = NULL WHERE created_by IS NOT NULL AND created_at < ?').bind(now - CREATOR_KEEP_MS),
+      env.DB.prepare("UPDATE votes SET note = '' WHERE note != ''"),
+      env.DB.prepare('DELETE FROM ip_salt WHERE day < ?').bind(new Date(now).toISOString().slice(0, 10)),
+    ])
+  } catch (e) { console.error('Pulizia dei dati vecchi non riuscita', e) }
 }
 
 export async function readJson(request: Request): Promise<any> {
@@ -96,7 +125,8 @@ export function parseVote(v: any): Omit<Vote, 'ts'> {
     status: v.status,
     fuels: { benzina: boolOrNull(f.benzina), diesel: boolOrNull(f.diesel), gpl: boolOrNull(f.gpl) },
     queueLevel: v.queueLevel,
-    note: text(v.note, 100, 'la nota', false),
+    // le note libere non si salvano più (la pagina non le chiede): niente testo che possa contenere dati personali
+    note: '',
   }
 }
 

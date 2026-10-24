@@ -1,10 +1,10 @@
 // POST /api/vote  { secret, stationId, vote }  → salva, cambia o (con vote: null) toglie il proprio voto.
 // Ognuno può toccare solo il voto legato al proprio codice segreto.
-import { Env, ApiError, json, errorResponse, readJson, voterIdFromSecret, ipHash, parseVote, checkIpRate, upsertVoteStmt, loadStation, purgeStationsCache } from '../../lib/benzina'
+import { Env, ApiError, json, errorResponse, readJson, voterIdFromSecret, ipHash, parseVote, checkIpRate, upsertVoteStmt, loadStation, purgeStationsCache, cleanupOldData } from '../../lib/benzina'
 
-type Ctx = { request: Request; env: Env }
+type Ctx = { request: Request; env: Env; waitUntil: (p: Promise<unknown>) => void }
 
-export const onRequestPost = async ({ request, env }: Ctx): Promise<Response> => {
+export const onRequestPost = async ({ request, env, waitUntil }: Ctx): Promise<Response> => {
   try {
     const body = await readJson(request)
     const voter = await voterIdFromSecret(body.secret)
@@ -19,11 +19,12 @@ export const onRequestPost = async ({ request, env }: Ctx): Promise<Response> =>
       await env.DB.prepare('DELETE FROM votes WHERE station_id = ? AND voter = ?').bind(stationId, voter).run()
     } else {
       const vote = parseVote(body.vote)
-      const ip = await ipHash(request)
+      const ip = await ipHash(env, request)
       await checkIpRate(env, ip, now)
       await upsertVoteStmt(env, stationId, voter, vote, now, ip).run()
     }
     await purgeStationsCache(request)
+    waitUntil(cleanupOldData(env, now))
 
     return json({ station: await loadStation(env, stationId, now), voter })
   } catch (e) {

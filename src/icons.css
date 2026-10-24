@@ -1,10 +1,11 @@
 /* Generato da scripts/build-icons.mjs: non modificare a mano. Font Awesome Free 6.5.1 (font: SIL OFL 1.1, icone: CC BY 4.0) */
-@font-face{font-family:"Font Awesome 6 Free";font-style:normal;font-weight:900;font-display:block;src:url(/vendor/fa/fa-solid-900.483ee445.woff2) format("woff2")}
+@font-face{font-family:"Font Awesome 6 Free";font-style:normal;font-weight:900;font-display:block;src:url(/vendor/fa/fa-solid-900.b1dabb6a.woff2) format("woff2")}
 @font-face{font-family:"Font Awesome 6 Free";font-style:normal;font-weight:400;font-display:block;src:url(/vendor/fa/fa-regular-400.5383e367.woff2) format("woff2")}
 .fa-solid,.fa-regular{font-family:"Font Awesome 6 Free";-moz-osx-font-smoothing:grayscale;-webkit-font-smoothing:antialiased;display:inline-block;font-style:normal;font-variant:normal;line-height:1;text-rendering:auto}
 .fa-solid{font-weight:900}.fa-regular{font-weight:400}
 .fa-spin{animation:fa-spin 2s linear infinite}@keyframes fa-spin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.fa-spin{animation:none}}
+.fa-arrow-left:before{content:"\f060"}
 .fa-arrow-up:before{content:"\f062"}
 .fa-car-side:before{content:"\f5e4"}
 .fa-check:before{content:"\f00c"}

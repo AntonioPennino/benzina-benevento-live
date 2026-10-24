@@ -492,7 +492,7 @@ window.openHowItWorks = function () {
                 <p><strong>Vince lo stato con più voti.</strong> A parità vince il più prudente (Esaurita, poi Limitata, poi Aperta): meglio non mandare nessuno a vuoto.</p>
                 <p><strong>Le notizie invecchiano.</strong> Se per 45 minuti nessuno conferma lo stato, il primo voto diverso lo cambia subito (per esempio una pompa che riapre). Nella scheda trovi il totale delle segnalazioni ricevute. Dopo 3 ore senza conferme la pompa appare tratteggiata: la notizia potrebbe non valere più.</p>
                 <p><strong>Code e carburanti</strong> sono quelli indicati nell’ultima segnalazione.</p>
-                <p class="text-[13px] text-slate-500">Il sito non chiede nomi né account. Per riconoscere il tuo voto usa un codice casuale salvato solo sul tuo telefono.</p>
+                <p class="text-[13px] text-slate-500">Il sito non chiede nomi né account e non usa cookie né statistiche. Per riconoscere il tuo voto usa un codice casuale salvato solo sul tuo telefono. <a href="/privacy" class="font-semibold underline">Privacy</a></p>
             </div>
             ${installHelp()}
         </div>`, 'help');
