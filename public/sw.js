@@ -3,7 +3,7 @@
 // - /api/stations: prima dalla rete; senza rete l'ultima risposta, con X-Offline-Cached-At (l'ora dei dati)
 // - file del sito (stile, script, font, icone): dalla cache e intanto si aggiornano
 // - voti e altre richieste, mappa di OpenStreetMap e altri siti: non passano di qui
-const CACHE = 'benzinabn-v1'
+const CACHE = 'benzinabn-v2'
 
 self.addEventListener('install', () => self.skipWaiting())
 self.addEventListener('activate', (e) => e.waitUntil((async () => {
@@ -43,7 +43,8 @@ self.addEventListener('fetch', (e) => {
         const res = await fetch(req)
         if (res.ok) {
           const body = await res.clone().arrayBuffer()
-          const headers = new Headers(res.headers); headers.set('X-Offline-Cached-At', String(Date.now()))
+          // solo le intestazioni che servono: copiando anche Content-Encoding Firefox scarta la risposta (il corpo è già decompresso)
+          const headers = { 'Content-Type': 'application/json', 'X-Offline-Cached-At': String(Date.now()) }
           await put(new Request('/api/stations'), new Response(body, { status: 200, headers }))
         }
         return res
