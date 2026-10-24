@@ -28,7 +28,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <!-- I distributori si chiedono subito, mentre il resto della pagina si carica (li usa app.js) -->
-    <script>window.__stationsRequest = fetch('/api/stations', { cache: 'no-store' }).catch(function () { return null; });</script>
+    <script>window.__stationsRequest = fetch('/api/stations', { cache: 'no-cache' }).catch(function () { return null; });</script>
     <link rel="stylesheet" href="/styles.css?v=dev">
     <link rel="preload" as="font" type="font/woff2" href="/vendor/inter-5.3.0/inter-latin-wght.woff2" crossorigin>
     <link rel="preload" as="font" type="font/woff2" href="/vendor/fa/fa-solid-900.483ee445.woff2" crossorigin>

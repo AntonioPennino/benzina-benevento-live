@@ -90,7 +90,9 @@ async function load() {
     loading = true;
     try {
         const early = window.__stationsRequest; window.__stationsRequest = null;
-        const res = (early && await early) || await fetch('/api/stations', { cache: 'no-store' });
+        // no-cache: sempre chiesto al server (mai una copia vecchia del browser); a differenza di no-store
+        // passa dal service worker anche senza rete in Firefox
+        const res = (early && await early) || await fetch('/api/stations', { cache: 'no-cache' });
         const data = await res.json().catch(() => ({}));
         if (!res.ok || !Array.isArray(data.stations)) throw new Error(data.error || `HTTP ${res.status}`);
         if (pendingVotes) return;
